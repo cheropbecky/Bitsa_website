@@ -1,10 +1,8 @@
-function Gallery() {
-  return (
-    <div className="text-center mt-10">
-      <h1 className="text-4xl font-bold">Gallery</h1>
-      <p className="mt-4 text-lg">View our image gallery here.</p>
+function Gallery(){
+  return(
+    <div>
+      <h1>This is my gallery</h1>
     </div>
-  );
+  )
 }
-
 export default Gallery;

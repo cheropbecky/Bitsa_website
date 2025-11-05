@@ -11,8 +11,11 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
+    "@react-google-maps/api": "^2.20.7",
     "@tailwindcss/vite": "^4.1.16",
+    "aos": "^2.3.4",
     "class-variance-authority": "^0.7.1",
+    "framer-motion": "^12.23.24",
     "lucide-react": "^0.552.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

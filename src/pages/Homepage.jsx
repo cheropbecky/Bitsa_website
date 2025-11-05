@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
+import AOS from "aos";
+import "aos/dist/aos.css";
 import {
   Calendar,
   Users,
@@ -7,10 +9,18 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
-import heroImage from "../assets/hero_bitsa.webp";
+import Bitsa_logo from "../assets/Bitsa_logo.jpg"
 import heroPicture from "../assets/hero_bitsa.jpg";
 
 function Homepage({ onNavigate }) {
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      once: false, 
+      mirror: true, 
+    });
+  }, []);
+
   const features = [
     {
       icon: <Users className="w-12 h-12 text-blue-500" />,
@@ -42,56 +52,56 @@ function Homepage({ onNavigate }) {
     },
   ];
 
-  const stats = [
-    { value: "500+", label: "Active Members" },
-    { value: "50+", label: "Events Annually" },
-    { value: "20+", label: "Partner Companies" },
-    { value: "95%", label: "Satisfaction Rate" },
-  ];
-
   return (
     <div className="min-h-screen">
+      {/* HERO SECTION */}
       <div
         className="relative overflow-hidden bg-cover bg-center min-h-[90vh]"
-        style={{
-          backgroundImage: `url(${heroPicture})`, 
-        }}
+        style={{ backgroundImage: `url(${heroPicture})` }}
       >
-        <div className="absolute inset-0 bg-black/10" />
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 via-blue-100/10 to-indigo-100/10" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse delay-1000" />
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse delay-1000" />
 
-        {/*  HERO CONTENT */}
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 text-center text-white">
+        <div
+          className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 text-center text-white"
+          data-aos="fade-up"
+        >
           <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg mb-8 border border-blue-200">
             <Sparkles className="w-4 h-4 text-blue-600" />
             <span className="text-blue-700 font-medium">
               Empowering Tech Leaders Since 2020
             </span>
           </div>
-          <h1 className="text-5xl md:text-7xl mb-6 font-extrabold drop-shadow-lg">
+
+          <h1
+            className="text-5xl md:text-7xl mb-6 font-extrabold drop-shadow-lg animate-bounce-slow"
+            data-aos="zoom-in"
+          >
             Welcome to <span className="text-blue-400">BITSA</span>
           </h1>
 
-          <p className="text-xl md:text-2xl mb-10 max-w-3xl mx-auto text-blue-100 font-bold drop-shadow">
-            Bachelor of Information Technology Students Association Empowering
+          <p
+            className="text-xl md:text-2xl mb-10 max-w-3xl mx-auto text-blue-100 font-bold drop-shadow"
+            data-aos="fade-up"
+            data-aos-delay="200"
+          >
+            Bachelor of Information Technology Students Association empowering
             the next generation of tech leaders through innovation,
             collaboration, and excellence.
           </p>
 
-          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => onNavigate("register")}
-              className="bg-blue-600 text-white px-8 py-4 rounded-full hover:bg-blue-700 transition-all flex items-center justify-center gap-2 font-bold text-lg shadow-lg"
+              className="bg-blue-600 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all transform hover:scale-105 hover:shadow-blue-500/50 hover:bg-blue-700 animate-glow"
             >
-              Join BITSA Today <ArrowRight className="w-5 h-5 " />
+              Join BITSA Today <ArrowRight className="w-5 h-5" />
             </button>
 
             <button
               onClick={() => onNavigate("events")}
-              className="bg-white/80 backdrop-blur-sm border-2 border-blue-300 text-blue-700 px-8 py-4 rounded-full hover:bg-blue-50 transition-all font-bold text-lg"
+              className="bg-white/80 backdrop-blur-sm border-2 border-blue-300 text-blue-700 px-8 py-4 rounded-full font-bold text-lg transition-all transform hover:scale-105 hover:shadow-lg hover:bg-blue-50"
             >
               Explore Events
             </button>
@@ -101,7 +111,7 @@ function Homepage({ onNavigate }) {
 
       {/* FEATURES SECTION */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 bg-white">
-        <div className="text-center mb-16">
+        <div className="text-center mb-16" data-aos="fade-up">
           <h2 className="text-4xl md:text-5xl mb-4 text-gray-900 font-extrabold">
             Why Join <span className="text-blue-600">BITSA?</span>
           </h2>
@@ -115,14 +125,16 @@ function Homepage({ onNavigate }) {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="group relative overflow-hidden bg-blue-100 border border-blue-100 rounded-2xl shadow-md hover:shadow-blue-400 hover:-translate-y-2 transition-all duration-300 p-8"
+              data-aos="zoom-in"
+              data-aos-delay={index * 200}
+              className="group relative overflow-hidden bg-blue-100 border border-blue-100 rounded-2xl shadow-md hover:shadow-blue-400 hover:-translate-y-2 transition-all duration-500 p-8"
             >
               <div
-                className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity`}
+                className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity`}
               />
               <div className="relative">
                 <div className="flex justify-center mb-6">
-                  <div className="p-4 bg-blue-200 rounded-2xl group-hover:bg-blue-100 transition-colors">
+                  <div className="p-4 bg-blue-200 rounded-2xl group-hover:bg-blue-100 transition-colors duration-300">
                     {feature.icon}
                   </div>
                 </div>
@@ -141,7 +153,7 @@ function Homepage({ onNavigate }) {
       {/* ABOUT SECTION */}
       <div className="bg-gradient-to-br from-blue-100 via-blue-50 to-indigo-100 py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div>
+          <div data-aos="fade-right">
             <div className="inline-block bg-blue-600 text-white px-4 py-1 rounded-full text-sm mb-6">
               About Us
             </div>
@@ -158,7 +170,6 @@ function Homepage({ onNavigate }) {
               a platform for students to connect, learn, and grow in the
               ever-evolving tech industry.
             </p>
-
             <ul className="space-y-3 mb-8 font-bold">
               {[
                 "Industry-led Workshops",
@@ -167,7 +178,7 @@ function Homepage({ onNavigate }) {
                 "Tech Competitions",
               ].map((item, i) => (
                 <li key={i} className="flex items-center gap-3 text-gray-700">
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0 animate-pulse">
                     <svg
                       className="w-4 h-4 text-white"
                       fill="none"
@@ -186,43 +197,48 @@ function Homepage({ onNavigate }) {
                 </li>
               ))}
             </ul>
-
             <button
               onClick={() => onNavigate("contact")}
-              className="bg-blue-600 text-white px-8 py-4 rounded-full hover:bg-blue-700 transition-all shadow-lg"
+              className="bg-blue-600 text-white px-8 py-4 rounded-full hover:bg-blue-700 transition-all shadow-lg flex items-center gap-2 font-bold transform hover:scale-105 hover:shadow-blue-500/50"
             >
-              Get in Touch
+              Get in Touch <ArrowRight className="w-5 h-5" />
             </button>
           </div>
 
-          <div>
-            <div
-              className="h-96 md:h-[500px] bg-cover bg-center rounded-3xl shadow-xl border-4 border-white"
-              style={{
-                backgroundImage:
-                  "url('https://images.unsplash.com/photo-1638029202288-451a89e0d55f?auto=format&fit=crop&w=800&q=80')",
-              }}
-            />
-          </div>
+         
+          {/* About Image */}
+<div className="relative" data-aos="fade-left">
+  <img
+    src="https://images.unsplash.com/photo-1638029202288-451a89e0d55f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2RpbmclMjBoYWNrYXRob258ZW58MXx8fHwxNzYyMjUxOTA4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    alt="Coding Hackathon"
+    className="rounded-3xl shadow-2xl object-cover w-full h-[450px] border-4 border-white hover:scale-105 transition-transform duration-700"
+  />
+  <div className="absolute inset-0 rounded-3xl bg-gradient-to-transparent from-blue-900/30 to-transparent"></div>
+</div>
+
+        </div>
+      </div>
+
+      {/* CALL TO ACTION SECTION */}
+      <div className="bg-blue-700 py-20 text-center text-white">
+        <div className="max-w-4xl mx-auto px-4" data-aos="fade-up">
+          <h2 className="text-4xl md:text-5xl font-extrabold mb-6 animate-pulse">
+            Ready to Be Part of Something Bigger?
+          </h2>
+          <p className="text-lg md:text-xl mb-10 font-bold text-blue-100">
+            Join BITSA today and take the first step toward becoming a leader in
+            the tech community.
+          </p>
+          <button
+            onClick={() => onNavigate("register")}
+            className="bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-blue-100 transition-all shadow-lg flex items-center gap-2 mx-auto transform hover:scale-105 hover:shadow-blue-300/50"
+          >
+            Join Now <ArrowRight className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
       
-      <div className="relative py-24 bg-gradient-to-br from-blue-300 via-blue-500 to-blue-800 text-center text-white ">
-        <h2 className="text-4xl md:text-5xl mb-6 font-bold">
-          Ready to Join Our Community?
-        </h2>
-        <p className="text-xl mb-10 max-w-2xl font-bold mx-auto text-blue-100">
-          Become a member of BITSA today and unlock exclusive opportunities for
-          learning, networking, and career growth.
-        </p>
-        <button
-          onClick={() => onNavigate("register")}
-          className="bg-white text-blue-600 px-10 py-4 rounded-full font-semibold hover:bg-blue-200 transition-all shadow-lg text-lg flex items-center justify-center mx-auto gap-2"
-        >
-          Sign Up Now <ArrowRight className="w-5 h-5" />
-        </button>
-      </div>
     </div>
   );
 }
