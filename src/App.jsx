@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-
 import Homepage from './pages/Homepage';
 import Blogs from './pages/Blogs';
 import Events from './pages/Events';

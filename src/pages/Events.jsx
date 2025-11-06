@@ -155,7 +155,7 @@ export default function Events() {
                     </div>
                   </div>
 
-                  <Button className="mt-3 bg-gradient-to-br from-blue-500 to-indigo-500 text-white font-bold py-2 rounded-4xl shadow-lg hover:scale-105 hover:shadow-2xl transition-all duration-300 flex items-center justify-center gap-1">
+                  <Button className="mt-3 bg-linear-to-br from-blue-500 to-indigo-500 text-white font-bold py-2 rounded-4xl shadow-lg hover:scale-105 hover:shadow-2xl transition-all duration-300 flex items-center justify-center gap-1">
                     <Ticket className="w-4 h-4" />
                     Register Now
                   </Button>

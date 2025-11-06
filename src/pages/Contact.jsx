@@ -46,7 +46,7 @@ function Contact() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-16">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 py-16">
       {/* Header */}
       <motion.div
         className="max-w-7xl mx-auto px-6 mb-12 text-center"
@@ -75,7 +75,7 @@ function Contact() {
         >
           <div className="bg-blue-100 rounded-2xl p-8 shadow-md hover:shadow-xl shadow-blue-500 transition">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center text-white">
+              <div className="w-12 h-12 bg-linear-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center text-white">
                 <MessageSquare className="w-6 h-6" />
               </div>
               <h2 className="text-3xl font-semibold">Send us a Message</h2>
@@ -140,7 +140,7 @@ function Contact() {
 
               <button
                 type="submit"
-                className="w-full h-12 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300"
+                className="w-full h-12 bg-linear-to-br from-blue-500 to-indigo-500 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300"
               >
                 <Send className="inline-block w-4 h-4 mr-2" />
                 Send Message
@@ -226,7 +226,7 @@ function Contact() {
               viewport={{ once: false }}
             >
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center text-white">
+                <div className="w-14 h-14 bg-linear-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center text-white">
                   <User className="w-7 h-7" />
                 </div>
                 <div>

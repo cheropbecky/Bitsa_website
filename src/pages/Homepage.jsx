@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import {
@@ -20,6 +21,7 @@ function Homepage({ onNavigate }) {
       mirror: true, 
     });
   }, []);
+  const navigate = useNavigate()
 
   const features = [
     {
@@ -93,14 +95,14 @@ function Homepage({ onNavigate }) {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => onNavigate("register")}
+              onClick={() => navigate("/register")}
               className="bg-blue-600 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all transform hover:scale-105 hover:shadow-blue-500/50 hover:bg-blue-700 animate-glow"
             >
               Join BITSA Today <ArrowRight className="w-5 h-5" />
             </button>
 
             <button
-              onClick={() => onNavigate("events")}
+              onClick={() => navigate("/events")}
               className="bg-white/80 backdrop-blur-sm border-2 border-blue-300 text-blue-700 px-8 py-4 rounded-full font-bold text-lg transition-all transform hover:scale-105 hover:shadow-lg hover:bg-blue-50"
             >
               Explore Events
@@ -130,7 +132,7 @@ function Homepage({ onNavigate }) {
               className="group relative overflow-hidden bg-blue-100 border border-blue-100 rounded-2xl shadow-md hover:shadow-blue-400 hover:-translate-y-2 transition-all duration-500 p-8"
             >
               <div
-                className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity`}
+                className={`absolute inset-0 bg-linear-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity`}
               />
               <div className="relative">
                 <div className="flex justify-center mb-6">
@@ -151,7 +153,7 @@ function Homepage({ onNavigate }) {
       </div>
 
       {/* ABOUT SECTION */}
-      <div className="bg-gradient-to-br from-blue-100 via-blue-50 to-indigo-100 py-24">
+      <div className="bg-linear-to-br from-blue-100 via-blue-50 to-indigo-100 py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div data-aos="fade-right">
             <div className="inline-block bg-blue-600 text-white px-4 py-1 rounded-full text-sm mb-6">
