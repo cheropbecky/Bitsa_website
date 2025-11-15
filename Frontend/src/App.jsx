@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -12,29 +12,50 @@ import Signup from './pages/Signup';
 import Register from './pages/Register';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
-import SeeDatabaseButton from './pages/SeeDatabaseButton';
 import AdminLogin from './pages/AdminLogin';
 
 function App() {
-  const [currentPage,setCurrentPage] = useState("Home");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
 
-  const handleNavigate = (page) => {
-    console.log("Navigating to:", page);
-    setCurrentPage(page);
+  // Persist login on page reload
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    const storedToken = localStorage.getItem('token');
+
+    if (storedUser && storedToken) {
+      setIsAuthenticated(true);
+      setUser(storedUser);
+      setToken(storedToken);
+    }
+  }, []);
+
+  // Called after successful login/register
+  const handleLogin = (loggedInUser, jwtToken) => {
+    setIsAuthenticated(true);
+    setUser(loggedInUser);
+    setToken(jwtToken);
+
+    // Save to localStorage
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
+    localStorage.setItem('token', jwtToken);
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false)
+    setIsAuthenticated(false);
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
+
   return (
     <Router>
       <Navbar
-      currentPage={currentPage}
-      onNavigate={handleNavigate}
-      isAuthenticated={isAuthenticated}
-      onLogout={handleLogout}
-      userEmail= "user@example.com"
+        isAuthenticated={isAuthenticated}
+        onLogout={handleLogout}
+        user={user} // pass full user object
       />
 
       <Routes>
@@ -43,15 +64,15 @@ function App() {
         <Route path="/events" element={<Events />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/userdashboard" element={<UserDashboard />} />
+        <Route path="/register" element={<Register onLogin={handleLogin} />} />
+        <Route path="/userdashboard" element={<UserDashboard accessToken={token} />} />
         <Route path="/admindashboard" element={<AdminDashboard />} />
-        <Route path="/seedatabasebutton" element={<SeeDatabaseButton />} />
-        <Route path="/adminLogin" element={<AdminLogin />} />
+        <Route path="/adminlogin" element={<AdminLogin />} />
         <Route path="*" element={<h1>404 Not Found</h1>} />
       </Routes>
+
       <Footer />
     </Router>
   );

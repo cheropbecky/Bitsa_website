@@ -1,19 +1,28 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  role: { type: String, enum: ['admin', 'student'], default: 'student' },
+  studentId: { type: String, default: '' },
+  course: { type: String, default: '' },
+  year: { type: String, default: '' },
+  photo: { type: String, default: '' }, // Profile picture path
+  createdAt: { type: Date, default: Date.now },
+  // Optional: track active sessions if needed
+  // sessions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Session' }]
 });
 
+// Hash password before save
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
+// Compare password
 userSchema.methods.matchPassword = async function(password) {
   return await bcrypt.compare(password, this.password);
 };

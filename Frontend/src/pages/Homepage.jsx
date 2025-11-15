@@ -26,28 +26,28 @@ function Homepage({ onNavigate }) {
 
   const features = [
     {
-      icon: <Users className="w-12 h-12 text-blue-500" />,
+      icon: <Users className="w-22 h-12 text-amber-500 " />,
       title: "Community",
       description:
         "Connect with fellow IT students and build lasting professional relationships.",
       gradient: "from-blue-500 to-blue-600",
     },
     {
-      icon: <Calendar className="w-12 h-12 text-blue-500" />,
+      icon: <Calendar className="w-22 h-12 text-blue-500" />,
       title: "Events",
       description:
         "Participate in workshops, hackathons, and networking events throughout the year.",
       gradient: "from-blue-600 to-blue-700",
     },
     {
-      icon: <BookOpen className="w-12 h-12 text-blue-500" />,
+      icon: <BookOpen className="w-22 h-12 text-red-500" />,
       title: "Resources",
       description:
         "Access study materials, tutorials, and career guidance from industry experts.",
       gradient: "from-blue-700 to-blue-800",
     },
     {
-      icon: <Trophy className="w-12 h-12 text-blue-500" />,
+      icon: <Trophy className="w-22 h-12 text-purple-600" />,
       title: "Competitions",
       description:
         "Showcase your skills in coding competitions and hackathons with prizes.",
@@ -118,7 +118,7 @@ function Homepage({ onNavigate }) {
           <h2 className="text-4xl md:text-5xl mb-4 text-gray-900 font-extrabold">
             Why Join <span className="text-blue-600">BITSA?</span>
           </h2>
-          <p className="text-xl font-bold text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl font-bold text-blue-600 max-w-2xl mx-auto">
             Discover the benefits of being part of our vibrant IT student
             community.
           </p>
@@ -233,7 +233,7 @@ function Homepage({ onNavigate }) {
             the tech community.
           </p>
           <button
-            onClick={() => onNavigate("register")}
+            onClick={() => navigate("/register")}
             className="bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-blue-100 transition-all shadow-lg flex items-center gap-2 mx-auto transform hover:scale-105 hover:shadow-blue-300/50"
           >
             Join Now <ArrowRight className="w-5 h-5" />
@@ -250,6 +250,12 @@ function Homepage({ onNavigate }) {
       <button>
         AdminLogin</button>
       </Link>
+      <Link to="/userdashboard">
+      <button>
+        userdashboard
+        </button>
+      </Link>
+      
     </div>
   );
 }
