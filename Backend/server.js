@@ -39,16 +39,22 @@ app.get('/', (req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Global Error:', err);
-  res.status(500).json({ message: err.message || 'Server error' });
+  res.status(err.status || 500).json({ message: err.message || 'Server error' });
 });
 
-// Connect MongoDB
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
+// Connect MongoDB and start server
+const startServer = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('MongoDB connected');
-    app.listen(PORT, () => console.log(`Server running on port ${PORT} 🚀`));
-  })
-  .catch((err) => {
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT} 🚀`);
+    });
+  } catch (err) {
     console.error('MongoDB connection error:', err);
-  });
+    process.exit(1); // Exit process if DB connection fails
+  }
+};
+
+startServer();

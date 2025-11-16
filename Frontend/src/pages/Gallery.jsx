@@ -8,33 +8,21 @@ function Gallery() {
   const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
-    // Simulate fetching static image data (no Supabase)
-    setTimeout(() => {
-      setImages([
-        {
-          id: 1,
-          title: "BITSA Hackathon 2024",
-          description: "A fun day of coding, teamwork, and innovation.",
-          imageUrl: "/assets/gallery1.jpg",
-          uploadedAt: "2024-03-15",
-        },
-        {
-          id: 2,
-          title: "Tech Talk with Alumni",
-          description: "Inspiring stories and mentorship from BITSA alumni.",
-          imageUrl: "/assets/gallery2.jpg",
-          uploadedAt: "2024-05-02",
-        },
-        {
-          id: 3,
-          title: "Annual Dinner Night",
-          description: "Celebrating achievements with friends and faculty.",
-          imageUrl: "/assets/gallery3.jpg",
-          uploadedAt: "2024-08-20",
-        },
-      ]);
-      setLoading(false);
-    }, 800);
+    const fetchGallery = async () => {
+      try {
+        const res = await fetch("http://localhost:5500/api/gallery");
+        if (!res.ok) throw new Error("Failed to fetch gallery images");
+        const data = await res.json();
+        setImages(data);
+      } catch (err) {
+        console.error(err);
+        setImages([]); // fallback
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGallery();
   }, []);
 
   const formatDate = (dateString) =>
@@ -47,18 +35,16 @@ function Gallery() {
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 py-16">
       {/* Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-        <div className="text-center">
-          <div className="inline-block bg-blue-600 text-white px-4 py-1 rounded-full text-sm mb-4">
-            Our Gallery
-          </div>
-          <h1 className="text-5xl md:text-6xl mb-4 text-gray-900">
-            Event <span className="text-gradient-blue">Highlights</span>
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Relive the memorable moments from our events and activities
-          </p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 text-center">
+        <div className="inline-block bg-blue-600 text-white px-4 py-1 rounded-full text-sm mb-4">
+          Our Gallery
         </div>
+        <h1 className="text-5xl md:text-6xl mb-4 text-gray-900">
+          Event <span className="text-gradient-blue">Highlights</span>
+        </h1>
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          Relive the memorable moments from our events and activities
+        </p>
       </div>
 
       {/* Gallery Grid */}
@@ -82,7 +68,7 @@ function Gallery() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {images.map((image) => (
               <div
-                key={image.id}
+                key={image._id}
                 className="group relative aspect-square cursor-pointer overflow-hidden rounded-2xl shadow-lg hover:shadow-blue-xl transition-all duration-300 hover:-translate-y-2"
                 onClick={() => setSelectedImage(image)}
               >
@@ -105,7 +91,7 @@ function Gallery() {
                 {/* Corner Badge */}
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs text-gray-700">
                   <Calendar className="w-3 h-3 inline mr-1" />
-                  {formatDate(image.uploadedAt)}
+                  {formatDate(image.createdAt)}
                 </div>
               </div>
             ))}
@@ -137,9 +123,7 @@ function Gallery() {
             />
 
             <div className="mt-6 text-center bg-white/10 backdrop-blur-md rounded-2xl p-6">
-              <h2 className="text-3xl text-white mb-3">
-                {selectedImage.title}
-              </h2>
+              <h2 className="text-3xl text-white mb-3">{selectedImage.title}</h2>
               {selectedImage.description && (
                 <p className="text-blue-100 text-lg mb-4">
                   {selectedImage.description}
@@ -147,7 +131,7 @@ function Gallery() {
               )}
               <div className="flex items-center justify-center gap-2 text-blue-200">
                 <Calendar className="w-5 h-5" />
-                <span>{formatDate(selectedImage.uploadedAt)}</span>
+                <span>{formatDate(selectedImage.createdAt)}</span>
               </div>
             </div>
           </div>

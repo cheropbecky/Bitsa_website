@@ -2,8 +2,9 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 // Protect routes
-exports.protect = async (req, res, next) => {
+const protect = async (req, res, next) => {
   let token;
+
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -22,10 +23,12 @@ exports.protect = async (req, res, next) => {
   }
 };
 
-// Admin only
-exports.admin = (req, res, next) => {
+// Admin only middleware
+const isAdmin = (req, res, next) => {
   if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({ message: "Admin access required" });
   }
   next();
 };
+
+module.exports = { protect, isAdmin };

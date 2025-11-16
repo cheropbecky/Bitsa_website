@@ -239,23 +239,7 @@ function Homepage({ onNavigate }) {
             Join Now <ArrowRight className="w-5 h-5" />
           </button>
         </div>
-      </div>
-
-      <Link to="/admindashboard">
-      <button>
-        Admin</button>
-      </Link>
-
-      <Link to="/AdminLogin">
-      <button>
-        AdminLogin</button>
-      </Link>
-      <Link to="/userdashboard">
-      <button>
-        userdashboard
-        </button>
-      </Link>
-      
+      </div>  
     </div>
   );
 }

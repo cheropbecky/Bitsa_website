@@ -1,32 +1,63 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const {
-  getEvents,
-  getEventById,
-  createEvent,
-  updateEvent,
-  deleteEvent,
-  registerEvent,
-} = require('../controllers/eventsController');
-const { protect, isAdmin } = require('../middleware/authMiddleware');
-const upload = require('../upload'); // for image uploads
+const multer = require("multer");
+const path = require("path");
+const Event = require("../models/Event");
 
-// CREATE event (admin only)
-router.post('/', protect, isAdmin, upload.single('image'), createEvent);
+// Configure Multer storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage });
 
 // GET all events
-router.get('/', getEvents);
+router.get("/", async (req, res) => {
+  try {
+    const events = await Event.find().sort({ createdAt: -1 });
+    res.json(events);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch events" });
+  }
+});
 
-// GET single event
-router.get('/:id', getEventById);
+// CREATE event with optional image
+router.post("/", upload.single("image"), async (req, res) => {
+  try {
+    const { title, description, date } = req.body;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : "";
 
-// UPDATE event (admin only)
-router.put('/:id', protect, isAdmin, upload.single('image'), updateEvent);
+    const newEvent = new Event({
+      title,
+      description,
+      date: date ? new Date(date) : undefined,
+      imageUrl,
+    });
 
-// DELETE event (admin only)
-router.delete('/:id', protect, isAdmin, deleteEvent);
+    await newEvent.save();
+    res.json(newEvent);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not create event" });
+  }
+});
 
-// OPTIONAL: register current user for event
-router.post('/:id/register', protect, registerEvent);
+// DELETE event
+router.delete("/:id", async (req, res) => {
+  try {
+    const deleted = await Event.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Event not found" });
+    res.json({ message: "Event deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not delete event" });
+  }
+});
 
 module.exports = router;
