@@ -11,7 +11,7 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
-import Bitsa_logo from "../assets/Bitsa_logo.jpg"
+
 import heroPicture from "../assets/hero_bitsa.jpg";
 
 function Homepage({ onNavigate }) {
