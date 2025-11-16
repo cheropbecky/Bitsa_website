@@ -13,6 +13,7 @@ import {
 } from "../components/ui/card";
 import { toast } from "sonner";
 import { Lock, Mail, ArrowRight } from "lucide-react";
+import api from "../api/api"; // ✅ Use your Axios instance
 
 function Login({ onLogin }) {
   const navigate = useNavigate(); 
@@ -23,26 +24,32 @@ function Login({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      // ✅ Call correct backend login route
+      const res = await api.post("/users/login", { email, password });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.msg || "Login failed");
+      // Save token + user in localStorage
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      onLogin(data.user, data.token);
+      // Update parent state if needed
+      if (onLogin) onLogin(res.data.user, res.data.token);
 
       toast.success("Login successful!");
-      navigate("/userdashboard"); 
+
+      // Redirect based on role
+      if (res.data.user.role === "admin") {
+        navigate("/admindashboard");
+      } else {
+        navigate("/userdashboard");
+      }
+
     } catch (err) {
       console.error("Login error:", err);
-      toast.error(err.message);
+      toast.error(
+        err.response?.data?.msg || "Invalid email or password"
+      );
     } finally {
       setLoading(false);
     }
@@ -50,7 +57,7 @@ function Login({ onLogin }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="absolute inset-0 bg-blue-200" />
+      <div className="absolute inset-0 bg-blue-100" />
       <motion.div
         className="absolute bottom-0 left-0 w-72 sm:w-96 h-72 sm:h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000"
         animate={{ y: [0, -15, 0], opacity: [0.2, 0.35, 0.2] }}

@@ -12,16 +12,39 @@ function Contact() {
 
   const contacts = [
     {
-      role: "President",
-      name: "Alpha Chamba",
-      email: "president@bitsa.edu",
-      phone: "0708898899",
+      name: "Brian Kiptoo",
+      role: "Chairperson",
+      email: "brian.kiptoo@bitsa.com",
+      phone: "+254 712 345 678",
+      img: "https://randomuser.me/api/portraits/men/32.jpg",
     },
     {
-      role: "Vice President",
-      name: "Gloria Jebet",
-      email: "vicepresident@bitsa.edu",
-      phone: "0725486687",
+      name: "Michelle Cherono",
+      role: "Vice Chairperson",
+      email: "michelle.cherono@bitsa.com",
+      phone: "+254 713 987 654",
+      img: "https://randomuser.me/api/portraits/women/44.jpg",
+    },
+    {
+      name: "Kelvin Mutai",
+      role: "Events Coordinator",
+      email: "kelvin.mutai@bitsa.com",
+      phone: "+254 711 567 890",
+      img: "https://randomuser.me/api/portraits/men/12.jpg",
+    },
+    {
+      name: "Anita Wanjiku",
+      role: "Communications Lead",
+      email: "anita.wanjiku@bitsa.com",
+      phone: "+254 718 234 567",
+      img: "https://randomuser.me/api/portraits/women/68.jpg",
+    },
+    {
+      name: "Vincent Barasa",
+      role: "Technical Lead",
+      email: "vincent.barasa@bitsa.com",
+      phone: "+254 720 345 210",
+      img: "https://randomuser.me/api/portraits/men/55.jpg",
     },
   ];
 
@@ -53,12 +76,11 @@ function Contact() {
         variants={fadeInUp}
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: false }}
       >
         <h1 className="text-5xl md:text-6xl mb-4 text-gray-900 font-bold">
           Contact <span className="text-blue-600">BITSA</span>
         </h1>
-        <p className="text-xl font-bold text-gray-600 max-w-2xl mx-auto">
+        <p className="text-xl font-bold text-gray-500 max-w-2xl mx-auto">
           Have questions? We're here to help and answer any questions you might have.
         </p>
       </motion.div>
@@ -71,7 +93,6 @@ function Contact() {
           variants={fadeInLeft}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: false }}
         >
           <div className="bg-blue-100 rounded-2xl p-8 shadow-md hover:shadow-xl shadow-blue-500 transition">
             <div className="flex items-center gap-3 mb-6">
@@ -154,17 +175,13 @@ function Contact() {
           variants={fadeInRight}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: false }}
         >
           <div className="bg-blue-100 rounded-2xl p-6 shadow-md space-y-6 hover:shadow-xl shadow-blue-300 hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-start gap-3">
               <Mail className="w-6 h-6 text-blue-600" />
               <div>
                 <p className="font-semibold text-gray-800">Email</p>
-                <a
-                  href="mailto:bitsaclub@ueab.ac.ke"
-                  className="text-blue-600 hover:underline"
-                >
+                <a href="mailto:bitsaclub@ueab.ac.ke" className="text-blue-600 hover:underline">
                   bitsaclub@ueab.ac.ke
                 </a>
               </div>
@@ -205,17 +222,13 @@ function Contact() {
       </div>
 
       {/* Leadership Section */}
-      <motion.div
-        className="max-w-6xl mx-auto mb-16 px-6"
-        variants={fadeInUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: false }}
-      >
-        <h2 className="text-4xl shadow-blue-300 font-bold text-center mb-10">
-          Meet Our <span className="text-blue-600 font-bold">Leaders</span>
+      <div className="max-w-7xl mx-auto px-6 mb-20">
+        <h2 className="text-4xl font-bold text-center mb-10">
+          Meet Our <span className="text-blue-600">Leadership</span>
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:justify-center md:&>*:mx-auto">
+
           {contacts.map((contact, index) => (
             <motion.div
               key={index}
@@ -223,18 +236,22 @@ function Contact() {
               variants={fadeInUp}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: false }}
             >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 bg-linear-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center text-white">
-                  <User className="w-7 h-7" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold">{contact.name}</h3>
-                  <p className="text-blue-600">{contact.role}</p>
-                </div>
+              {/* Profile Image */}
+              <div className="flex justify-center mb-4">
+                <img
+                  src={contact.img}
+                  alt={contact.name}
+                  className="w-24 h-24 rounded-full object-cover ring-4 ring-blue-300 shadow-md"
+                />
               </div>
-              <p className="text-gray-700">
+
+              <div className="text-center mb-4">
+                <h3 className="text-xl font-semibold">{contact.name}</h3>
+                <p className="text-blue-600 font-medium">{contact.role}</p>
+              </div>
+
+              <p className="text-gray-700 text-center">
                 <Mail className="inline w-4 h-4 mr-2 text-blue-600" />
                 <a
                   href={`mailto:${contact.email}`}
@@ -243,7 +260,8 @@ function Contact() {
                   {contact.email}
                 </a>
               </p>
-              <p className="text-gray-700 mt-2">
+
+              <p className="text-gray-700 mt-2 text-center">
                 <Phone className="inline w-4 h-4 mr-2 text-blue-600" />
                 <a
                   href={`tel:${contact.phone}`}
@@ -255,7 +273,7 @@ function Contact() {
             </motion.div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Google Map Section */}
       <motion.div
@@ -263,11 +281,11 @@ function Contact() {
         variants={fadeInUp}
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: false }}
       >
         <h2 className="text-4xl font-bold text-center mb-8">
           Find Us on <span className="text-blue-600">Google Maps</span>
         </h2>
+
         <div className="w-full h-[400px] rounded-2xl overflow-hidden shadow-lg border border-blue-200">
           <iframe
             src="https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d31918.220353151002!2d35.071590372685755!3d0.25903879516635064!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1sUniversity%20Of%20Eastern%20Africa%20Baraton%20library!5e0!3m2!1sen!2ske!4v1762370559888!5m2!1sen!2ske"

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Gallery = require('../models/Gallery');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
-const upload = require('../middleware/upload');
+const upload = require('../upload');
 
 // CREATE
 router.post('/', protect, isAdmin, upload.single('image'), async (req, res) => {

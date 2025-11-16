@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import api from '../api/api'; // ✅ use your axios instance
 
-function Register({ onLogin }) {
+function Register() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
@@ -23,6 +24,7 @@ function Register({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Basic validations
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -36,54 +38,42 @@ function Register({ onLogin }) {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      // ✅ Send data to the correct backend URL
+      const response = await api.post('/users/register', formData);
+      const data = response.data;
+
+      toast.success('Account created successfully!', { duration: 3000 });
+
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        studentId: '',
+        course: '',
+        year: '',
       });
 
-      const data = await response.json();
+      // Redirect to login page
+      navigate('/login');
 
-      if (!response.ok) throw new Error(data.message || 'Registration failed');
-
-      toast.success(data.message || 'Account created successfully!', { duration: 3000 });
-
-      // ✅ Auto-login
-      if (data.token && data.user && onLogin) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-
-        // Update App state
-        onLogin(data.user, data.token);
-
-        // Clear form
-        setFormData({
-          name: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-          studentId: '',
-          course: '',
-          year: '',
-        });
-
-        // Redirect to homepage
-        navigate('/');
-      }
     } catch (error) {
-      console.error('Error:', error.message);
-      toast.error(error.message || 'Something went wrong. Please try again.');
+      console.error("Registration Error:", error);
+      toast.error(
+        error.response?.data?.message || "Something went wrong. Try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-blue-50 flex items-center justify-center py-12 px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-blue-100 flex items-center justify-center py-12 px-4 relative overflow-hidden">
       <motion.div
         initial={{ opacity: 0, y: 60 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-3xl bg-blue-200 rounded-2xl shadow-2xl p-8 border border-blue-100"
+        className="w-full max-w-3xl bg-blue-300 rounded-2xl shadow-2xl p-8 border border-blue-100"
       >
         <h1 className="text-4xl text-blue-600 font-bold text-center mb-6">Join BITSA</h1>
 
@@ -96,6 +86,7 @@ function Register({ onLogin }) {
             className="w-full h-12 border rounded-md px-3"
             required
           />
+
           <input
             type="email"
             placeholder="Email"
@@ -104,6 +95,7 @@ function Register({ onLogin }) {
             className="w-full h-12 border rounded-md px-3"
             required
           />
+
           <input
             type="password"
             placeholder="Password"
@@ -112,6 +104,7 @@ function Register({ onLogin }) {
             className="w-full h-12 border rounded-md px-3"
             required
           />
+
           <input
             type="password"
             placeholder="Confirm Password"
@@ -120,6 +113,7 @@ function Register({ onLogin }) {
             className="w-full h-12 border rounded-md px-3"
             required
           />
+
           <input
             type="text"
             placeholder="Student ID"
@@ -127,6 +121,7 @@ function Register({ onLogin }) {
             onChange={(e) => handleChange('studentId', e.target.value)}
             className="w-full h-12 border rounded-md px-3"
           />
+
           <input
             type="text"
             placeholder="Course/Program"
@@ -134,6 +129,7 @@ function Register({ onLogin }) {
             onChange={(e) => handleChange('course', e.target.value)}
             className="w-full h-12 border rounded-md px-3"
           />
+
           <select
             value={formData.year}
             onChange={(e) => handleChange('year', e.target.value)}

@@ -17,7 +17,7 @@ function Navbar({ isAuthenticated, onLogout, user }) {
   ];
 
   return (
-    <nav className="bg-blue-50 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-blue-100">
+    <nav className="bg-blue-200 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-blue-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
@@ -57,7 +57,7 @@ function Navbar({ isAuthenticated, onLogout, user }) {
                   <span className="text-sm text-gray-700">{user?.name || user?.email?.split('@')[0]}</span>
                 </div>
                 <Link to="/userdashboard">
-                  <Button variant="outline" className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
+                  <Button variant="outline" className="flex items-center gap-2 border-blue-600 text-blue-700 hover:bg-blue-50">
                     <User className="w-4 h-4" />
                     Dashboard
                   </Button>

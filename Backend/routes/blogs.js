@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Blog = require('../models/Blog');
 const { auth, isAdmin } = require('../middleware/authMiddleware');
-const upload = require('../middleware/upload');
+const upload = require('../upload');
 
 router.post('/', upload.single('image'), async (req, res) => {
   try {

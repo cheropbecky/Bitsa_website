@@ -9,10 +9,8 @@ const userSchema = new mongoose.Schema({
   studentId: { type: String, default: '' },
   course: { type: String, default: '' },
   year: { type: String, default: '' },
-  photo: { type: String, default: '' }, // Profile picture path
+  photo: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
-  // Optional: track active sessions if needed
-  // sessions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Session' }]
 });
 
 // Hash password before save
