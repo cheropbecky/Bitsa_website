@@ -1,48 +1,73 @@
+// File: frontend/src/pages/BitsaAdminDashboard.jsx
+
 import React, { useState, useEffect } from "react";
 
 function BitsaAdminDashboard() {
   const [tab, setTab] = useState("blogs");
 
-  // Data from backend
+  // ---------------- STATE ----------------
   const [blogs, setBlogs] = useState([]);
   const [events, setEvents] = useState([]);
   const [gallery, setGallery] = useState([]);
   const [users, setUsers] = useState([]);
 
-  // Forms
   const [newBlog, setNewBlog] = useState({ title: "", author: "", category: "", image: null, content: "" });
-  const [newEvent, setNewEvent] = useState({ title: "", datetime: "", location: "", image: "", description: "" });
+  const [newEvent, setNewEvent] = useState({ title: "", datetime: "", location: "", image: null, description: "" });
   const [newImage, setNewImage] = useState({ url: "", title: "", description: "" });
 
-  // Toasts
   const [toast, setToast] = useState(null);
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), toast.duration || 3000);
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Fetch blogs from backend
+  // ---------------- FETCH DATA ----------------
   useEffect(() => {
     fetchBlogs();
+    fetchEvents();
+    fetchGallery();
+    fetchUsers();
   }, []);
 
   const fetchBlogs = async () => {
     try {
       const res = await fetch("http://localhost:5500/api/blogs");
-      if (!res.ok) throw new Error("Failed to fetch blogs");
       const data = await res.json();
       setBlogs(data.blogs || data);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
-  // BLOG ACTIONS
-  async function createBlog(e) {
-    e?.preventDefault();
+  const fetchEvents = async () => {
+    try {
+      const res = await fetch("http://localhost:5500/api/events");
+      const data = await res.json();
+      setEvents(data.events || data);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchGallery = async () => {
+    try {
+      const res = await fetch("http://localhost:5500/api/gallery");
+      const data = await res.json();
+      setGallery(data.gallery || data);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("http://localhost:5500/api/users");
+      const data = await res.json();
+      setUsers(data.users || data);
+    } catch (err) { console.error(err); }
+  };
+
+  // ---------------- BLOG FUNCTIONS ----------------
+  const createBlog = async (e) => {
+    e.preventDefault();
     if (!newBlog.title || !newBlog.author || !newBlog.content) {
-      setToast({ type: "error", message: "Please fill required fields", duration: 4000 });
+      setToast({ type: "error", message: "Please fill required fields" });
       return;
     }
 
@@ -54,34 +79,30 @@ function BitsaAdminDashboard() {
       formData.append("content", newBlog.content);
       if (newBlog.image) formData.append("image", newBlog.image);
 
-      const response = await fetch("http://localhost:5500/api/blogs", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Failed to create blog");
-
-      const savedBlog = await response.json();
-      setBlogs((s) => [savedBlog, ...s]);
+      const res = await fetch("http://localhost:5500/api/blogs", { method: "POST", body: formData });
+      const savedBlog = await res.json();
+      setBlogs([savedBlog, ...blogs]);
       setNewBlog({ title: "", author: "", category: "", image: null, content: "" });
-      setToast({ type: "success", message: "Blog post created!" });
+      setToast({ type: "success", message: "Blog created!" });
     } catch (err) {
       console.error(err);
-      setToast({ type: "error", message: "Error creating blog." });
+      setToast({ type: "error", message: "Error creating blog" });
     }
-  }
+  };
 
-  function deleteBlog(id) {
-    setBlogs((s) => s.filter((b) => b.id !== id));
-    setToast({ type: "success", message: "Blog deleted" });
-  }
+  const deleteBlog = async (id) => {
+    try {
+      await fetch(`http://localhost:5500/api/blogs/${id}`, { method: "DELETE" });
+      setBlogs(blogs.filter((b) => b._id !== id));
+      setToast({ type: "success", message: "Blog deleted!" });
+    } catch (err) { console.error(err); }
+  };
 
-  // EVENT ACTIONS
-  async function createEvent(e) {
+  // ---------------- EVENT FUNCTIONS ----------------
+  const createEvent = async (e) => {
     e.preventDefault();
-
     if (!newEvent.title || !newEvent.datetime || !newEvent.description) {
-      setToast({ type: "error", message: "Please fill all required fields", duration: 4000 });
+      setToast({ type: "error", message: "Please fill required fields" });
       return;
     }
 
@@ -89,282 +110,110 @@ function BitsaAdminDashboard() {
       const formData = new FormData();
       formData.append("title", newEvent.title);
       formData.append("description", newEvent.description);
-      formData.append("date", newEvent.datetime);
+      formData.append("datetime", newEvent.datetime);
       if (newEvent.image) formData.append("image", newEvent.image);
 
-      const res = await fetch("http://localhost:5500/api/events", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch("http://localhost:5500/api/events", { method: "POST", body: formData });
+      const savedEvent = await res.json();
+      setEvents([savedEvent, ...events]);
+      setNewEvent({ title: "", datetime: "", location: "", image: null, description: "" });
+      setToast({ type: "success", message: "Event created!" });
+    } catch (err) { console.error(err); setToast({ type: "error", message: "Error creating event" }); }
+  };
 
-      if (!res.ok) throw new Error("Failed to create event");
-
-      const createdEvent = await res.json();
-      setEvents((s) => [createdEvent, ...s]);
-      setNewEvent({ title: "", datetime: "", location: "", image: "", description: "" });
-      setToast({ type: "success", message: "Event created successfully!" });
-    } catch (err) {
-      console.error(err);
-      setToast({ type: "error", message: "Error creating event" });
-    }
-  }
-
-  async function deleteEvent(id) {
+  const deleteEvent = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5500/api/events/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
-      setEvents((s) => s.filter((e) => e._id !== id));
-      setToast({ type: "success", message: "Event deleted" });
-    } catch (err) {
-      console.error(err);
-      setToast({ type: "error", message: "Error deleting event" });
-    }
-  }
+      await fetch(`http://localhost:5500/api/events/${id}`, { method: "DELETE" });
+      setEvents(events.filter((e) => e._id !== id));
+      setToast({ type: "success", message: "Event deleted!" });
+    } catch (err) { console.error(err); }
+  };
 
-  // GALLERY ACTIONS
-  function addImage(e) {
-    e?.preventDefault();
+  // ---------------- GALLERY FUNCTIONS ----------------
+  const addImage = (e) => {
+    e.preventDefault();
     if (!newImage.url) { setToast({ type: "error", message: "Image URL required" }); return; }
-    const img = { id: Date.now(), ...newImage, date: new Date().toLocaleDateString() };
-    setGallery((s) => [img, ...s]);
+    const img = { id: Date.now(), ...newImage, createdAt: new Date() };
+    setGallery([img, ...gallery]);
     setNewImage({ url: "", title: "", description: "" });
-    setToast({ type: "success", message: "Image added" });
-  }
+    setToast({ type: "success", message: "Image added!" });
+  };
 
-  function deleteImage(id) {
-    setGallery((s) => s.filter((g) => g.id !== id));
-    setToast({ type: "success", message: "Image removed" });
-  }
+  const deleteImage = (id) => {
+    setGallery(gallery.filter((g) => g.id !== id));
+    setToast({ type: "success", message: "Image removed!" });
+  };
 
-  // USERS ACTION
-  function toggleAdmin(userId) {
-    setUsers((s) => s.map(u => u.id === userId ? { ...u, isAdmin: !u.isAdmin } : u));
-    setToast({ type: "success", message: "User admin status updated" });
-  }
+  // ---------------- USER FUNCTIONS ----------------
+  const toggleAdmin = (userId) => {
+    setUsers(users.map((u) => u.id === userId ? { ...u, isAdmin: !u.isAdmin } : u));
+    setToast({ type: "success", message: "User admin status updated!" });
+  };
 
-  // Tabs component
+  // ---------------- TABS ----------------
   const Tabs = () => (
-    <div className="flex gap-2 bg-white/50 p-1 rounded-lg mb-4">
-      {[
-        { id: "blogs", label: "📝 Blogs" },
-        { id: "events", label: "📅 Events" },
-        { id: "gallery", label: "🖼️ Gallery" },
-        { id: "users", label: "👥 Users" },
-      ].map(t => (
-        <button key={t.id} onClick={() => setTab(t.id)} className={`px-3 py-2 rounded-lg text-sm ${tab === t.id ? "bg-blue-600 text-white" : "text-gray-700"}`}>
-          {t.label}
+    <div className="flex flex-wrap gap-2 mb-4">
+      {["blogs", "events", "gallery", "users"].map((t) => (
+        <button
+          key={t}
+          onClick={() => setTab(t)}
+          className={`px-4 py-2 rounded-lg font-medium transition ${
+            tab === t ? "bg-blue-600 text-white shadow-lg" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          {t.charAt(0).toUpperCase() + t.slice(1)}
         </button>
       ))}
     </div>
   );
 
+  // ---------------- MAIN RENDER ----------------
   return (
-    <div className="min-h-screen bg-blue-100">
-      <main className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800">🛡️ Admin Dashboard</h1>
-            <p className="text-sm text-slate-500 mt-1">Manage BITSA content and users</p>
-          </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <main className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+          <p className="text-gray-500 mt-1">Manage BITSA content and users</p>
         </div>
 
         <Tabs />
 
-        <div className="bg-blue-200 rounded-2xl p-6 shadow-sm">
+        <div className="bg-white p-6 rounded-xl shadow">
           {/* BLOGS */}
           {tab === "blogs" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <form className="col-span-1 p-4 border rounded-lg" onSubmit={createBlog}>
-                <h2 className="font-semibold mb-3">➕ Create New Blog Post</h2>
-                <label>Title *</label>
-                <input value={newBlog.title} onChange={(e) => setNewBlog({...newBlog, title: e.target.value})} className="w-full p-2 border rounded mt-1 mb-2" />
-                <label>Author *</label>
-                <input value={newBlog.author} onChange={(e) => setNewBlog({...newBlog, author: e.target.value})} className="w-full p-2 border rounded mt-1 mb-2" />
-                <label>Category</label>
-                <input value={newBlog.category} onChange={(e) => setNewBlog({...newBlog, category: e.target.value})} className="w-full p-2 border rounded mt-1 mb-2" />
-                <label>Image</label>
-                <input type="file" onChange={(e) => setNewBlog({...newBlog, image: e.target.files[0]})} className="w-full p-2 border rounded mt-1 mb-2" />
-                <label>Content *</label>
-                <textarea value={newBlog.content} onChange={(e) => setNewBlog({...newBlog, content: e.target.value})} className="w-full p-2 border rounded mt-1 mb-3 h-28" />
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg">➕ Create Blog Post</button>
+              <form onSubmit={createBlog} className="col-span-1 p-4 border rounded-lg shadow-sm bg-gray-50">
+                <h2 className="font-semibold mb-3">Create Blog</h2>
+                <input type="text" placeholder="Title" value={newBlog.title} onChange={e => setNewBlog({...newBlog, title:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
+                <input type="text" placeholder="Author" value={newBlog.author} onChange={e => setNewBlog({...newBlog, author:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
+                <input type="text" placeholder="Category" value={newBlog.category} onChange={e => setNewBlog({...newBlog, category:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
+                <input type="file" onChange={e => setNewBlog({...newBlog,image:e.target.files[0]})} className="w-full mb-2"/>
+                {newBlog.image && <img src={URL.createObjectURL(newBlog.image)} alt="preview" className="w-full h-32 object-cover rounded mb-2"/>}
+                <textarea placeholder="Content" value={newBlog.content} onChange={e => setNewBlog({...newBlog,content:e.target.value})} className="w-full mb-2 p-2 border rounded h-28"/>
+                <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg">Create</button>
               </form>
 
-              <div className="col-span-2">
-                <h3 className="font-semibold mb-3">All Blog Posts ({blogs.length})</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="text-sm text-gray-500">
-                      <tr>
-                        <th>Title</th>
-                        <th>Author</th>
-                        <th>Category</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {blogs.map(b => (
-                        <tr key={b._id || b.id} className="hover:bg-blue-50">
-                          <td>{b.title}</td>
-                          <td>{b.author}</td>
-                          <td>{b.category}</td>
-                          <td>{b.date || b.createdAt}</td>
-                          <td>
-                            <button onClick={() => deleteBlog(b.id)} className="px-2 py-1 rounded bg-red-50 text-red-600">🗑️</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* EVENTS */}
-          {tab === "events" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <form className="col-span-1 p-4 border rounded-lg" onSubmit={createEvent}>
-                <h2 className="font-semibold mb-3">➕ Create New Event</h2>
-                <label>Title *</label>
-                <input value={newEvent.title} onChange={(e) => setNewEvent({...newEvent, title: e.target.value})} className="w-full p-2 border rounded mt-1 mb-2" />
-                <label>Date *</label>
-                <input type="datetime-local" value={newEvent.datetime} onChange={(e) => setNewEvent({...newEvent, datetime: e.target.value})} className="w-full p-2 border rounded mt-1 mb-2" />
-                <label>Description *</label>
-                <textarea value={newEvent.description} onChange={(e) => setNewEvent({...newEvent, description: e.target.value})} className="w-full p-2 border rounded mt-1 mb-3 h-24" />
-                <label>Image</label>
-                <input type="file" accept="image/*" onChange={(e) => setNewEvent({...newEvent, image: e.target.files[0]})} className="w-full p-2 border rounded mt-1 mb-2" />
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg">➕ Add Event</button>
-              </form>
-
-              <div className="col-span-2">
-                <h3 className="font-semibold mb-3">All Events ({events.length})</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="text-sm text-gray-500">
-                      <tr>
-                        <th>Title</th>
-                        <th>Date</th>
-                        <th>Image</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {events.map((ev) => (
-                        <tr key={ev._id || ev.id} className="hover:bg-blue-50">
-                          <td>{ev.title}</td>
-                          <td>
-                            {ev.date
-                              ? new Date(ev.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
-                                " " +
-                                new Date(ev.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                              : "Not set"}
-                          </td>
-                          <td>
-                            {ev.imageUrl && (
-                              <img src={`http://localhost:5500${ev.imageUrl}`} alt="" className="w-16 h-12 object-cover rounded" />
-                            )}
-                          </td>
-                          <td>
-                            <button onClick={() => deleteEvent(ev._id)} className="px-2 py-1 rounded bg-red-50 text-red-600">🗑️</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* GALLERY */}
-          {tab === "gallery" && (
-  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    {/* ADD IMAGE FORM */}
-    <form className="col-span-1 p-4 border rounded-lg" onSubmit={addImage}>
-      <h2 className="font-semibold mb-3">➕ Add Gallery Image</h2>
-      
-      <label>Image URL *</label>
-      <input
-        value={newImage.url}
-        onChange={(e) => setNewImage({ ...newImage, url: e.target.value })}
-        className="w-full p-2 border rounded mt-1 mb-2"
-      />
-
-      <label>Title</label>
-      <input
-        value={newImage.title}
-        onChange={(e) => setNewImage({ ...newImage, title: e.target.value })}
-        className="w-full p-2 border rounded mt-1 mb-2"
-      />
-
-      <label>Description</label>
-      <textarea
-        value={newImage.description}
-        onChange={(e) => setNewImage({ ...newImage, description: e.target.value })}
-        className="w-full p-2 border rounded mt-1 mb-3 h-24"
-      />
-
-      <button className="w-full bg-blue-600 text-white py-2 rounded-lg">
-        ➕ Add Image
-      </button>
-    </form>
-
-    {/* GALLERY IMAGES GRID */}
-    <div className="col-span-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {gallery.map((g) => (
-        <div key={g._id} className="bg-white rounded-lg p-2 shadow hover:shadow-lg relative">
-          <div className="h-36 w-full bg-gray-100 rounded overflow-hidden mb-2">
-            <img
-              src={g.imageUrl}
-              alt={g.title || "Gallery image"}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="text-sm font-medium">{g.title}</div>
-          <div className="text-xs text-gray-400">{new Date(g.createdAt).toLocaleDateString()}</div>
-          <button
-            onClick={() => deleteImage(g._id)}
-            className="absolute top-2 right-2 bg-white/70 rounded-full p-1"
-          >
-            🗑️
-          </button>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-
-
-          {/* USERS */}
-          {tab === "users" && (
-            <div>
-              <h3 className="font-semibold mb-3">All Users ({users.length})</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="text-sm text-gray-500">
+              <div className="col-span-2 overflow-x-auto">
+                <h3 className="font-semibold mb-3">All Blogs ({blogs.length})</h3>
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-gray-100">
                     <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Student</th>
-                      <th>Course</th>
-                      <th>Year</th>
-                      <th>Joined</th>
-                      <th>Actions</th>
+                      <th className="p-2 border">Title</th>
+                      <th className="p-2 border">Author</th>
+                      <th className="p-2 border">Category</th>
+                      <th className="p-2 border">Date</th>
+                      <th className="p-2 border">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map(u => (
-                      <tr key={u.id} className="hover:bg-blue-50">
-                        <td>{u.name}</td>
-                        <td>{u.email}</td>
-                        <td>{u.student}</td>
-                        <td>{u.course}</td>
-                        <td>{u.year}</td>
-                        <td>{u.joined}</td>
-                        <td>
-                          <button onClick={() => toggleAdmin(u.id)} className={`px-3 py-1 rounded ${u.isAdmin ? "bg-yellow-100 text-yellow-800" : "border border-blue-300 text-blue-700"}`}>🛡️ Toggle Admin</button>
+                    {blogs.map(b => (
+                      <tr key={b._id || b.id} className="hover:bg-gray-50">
+                        <td className="p-2 border">{b.title}</td>
+                        <td className="p-2 border">{b.author}</td>
+                        <td className="p-2 border">{b.category}</td>
+                        <td className="p-2 border">{new Date(b.createdAt).toLocaleDateString()}</td>
+                        <td className="p-2 border">
+                          <button onClick={() => deleteBlog(b._id || b.id)} className="bg-red-100 text-red-700 px-2 py-1 rounded">Delete</button>
                         </td>
                       </tr>
                     ))}
@@ -373,12 +222,111 @@ function BitsaAdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* EVENTS */}
+          {tab === "events" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <form onSubmit={createEvent} className="col-span-1 p-4 border rounded-lg shadow-sm bg-gray-50">
+                <h2 className="font-semibold mb-3">Create Event</h2>
+                <input type="text" placeholder="Title" value={newEvent.title} onChange={e => setNewEvent({...newEvent,title:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
+                <input type="datetime-local" value={newEvent.datetime} onChange={e => setNewEvent({...newEvent,datetime:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
+                <textarea placeholder="Description" value={newEvent.description} onChange={e => setNewEvent({...newEvent,description:e.target.value})} className="w-full mb-2 p-2 border rounded h-28"/>
+                <input type="file" accept="image/*" onChange={e => setNewEvent({...newEvent,image:e.target.files[0]})} className="w-full mb-2"/>
+                <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg">Create</button>
+              </form>
+
+              <div className="col-span-2 overflow-x-auto">
+                <h3 className="font-semibold mb-3">All Events ({events.length})</h3>
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="p-2 border">Title</th>
+                      <th className="p-2 border">Date</th>
+                      <th className="p-2 border">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {events.map(e => (
+                      <tr key={e._id || e.id} className="hover:bg-gray-50">
+                        <td className="p-2 border">{e.title}</td>
+                        <td className="p-2 border">{new Date(e.datetime).toLocaleString()}</td>
+                        <td className="p-2 border">
+                          <button onClick={() => deleteEvent(e._id || e.id)} className="bg-red-100 text-red-700 px-2 py-1 rounded">Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* GALLERY */}
+          {tab === "gallery" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <form onSubmit={addImage} className="col-span-1 p-4 border rounded-lg shadow-sm bg-gray-50">
+                <h2 className="font-semibold mb-3">Add Image</h2>
+                <input type="text" placeholder="Image URL" value={newImage.url} onChange={e => setNewImage({...newImage,url:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
+                <input type="text" placeholder="Title" value={newImage.title} onChange={e => setNewImage({...newImage,title:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
+                <textarea placeholder="Description" value={newImage.description} onChange={e => setNewImage({...newImage,description:e.target.value})} className="w-full mb-2 p-2 border rounded h-28"/>
+                <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg">Add</button>
+              </form>
+
+              <div className="col-span-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {gallery.map(g => (
+                  <div key={g._id || g.id} className="bg-white rounded-lg shadow p-2 relative hover:shadow-lg">
+                    <div className="h-36 w-full bg-gray-100 rounded overflow-hidden mb-2">
+                      <img src={g.url || g.imageUrl} alt={g.title} className="w-full h-full object-cover"/>
+                    </div>
+                    <div className="text-sm font-medium">{g.title}</div>
+                    <div className="text-xs text-gray-400">{new Date(g.createdAt).toLocaleDateString()}</div>
+                    <button onClick={() => deleteImage(g.id)} className="absolute top-2 right-2 bg-white/70 rounded-full p-1">🗑️</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* USERS */}
+          {tab === "users" && (
+            <div className="overflow-x-auto">
+              <h3 className="font-semibold mb-3">All Users ({users.length})</h3>
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-2 border">Name</th>
+                    <th className="p-2 border">Email</th>
+                    <th className="p-2 border">Student</th>
+                    <th className="p-2 border">Course</th>
+                    <th className="p-2 border">Year</th>
+                    <th className="p-2 border">Joined</th>
+                    <th className="p-2 border">Admin</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u.id} className="hover:bg-gray-50">
+                      <td className="p-2 border">{u.name}</td>
+                      <td className="p-2 border">{u.email}</td>
+                      <td className="p-2 border">{u.student}</td>
+                      <td className="p-2 border">{u.course}</td>
+                      <td className="p-2 border">{u.year}</td>
+                      <td className="p-2 border">{u.joined}</td>
+                      <td className="p-2 border">
+                        <button onClick={() => toggleAdmin(u.id)} className={`px-3 py-1 rounded ${u.isAdmin ? "bg-yellow-100 text-yellow-800" : "border border-blue-300 text-blue-700"}`}>🛡️</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </main>
 
-      {/* Toast */}
+      {/* Toast Notification */}
       {toast && (
-        <div className={`fixed right-6 bottom-6 p-3 rounded-lg shadow-lg ${toast.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>
+        <div className={`fixed right-6 bottom-6 p-4 rounded-lg shadow-lg transition-all ${toast.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>
           {toast.message}
         </div>
       )}

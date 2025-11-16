@@ -1,40 +1,26 @@
+// routes/blogs.js
 const express = require('express');
 const router = express.Router();
-const Blog = require('../models/Blog');
-const { auth, isAdmin } = require('../middleware/authMiddleware');
-const upload = require('../upload');
+const multer = require('multer');
+const upload = multer({ dest: 'temp/' }); // temporary storage
+const { protect, isAdmin } = require('../middleware/authMiddleware');
+const {
+  createBlog,
+  deleteBlog,
+  updateBlogImage,
+  getAllBlogs
+} = require('../controllers/blogController');
 
-router.post('/', upload.single('image'), async (req, res) => {
-  try {
-    const blog = new Blog({
-      ...req.body,
-      image: req.file?.filename
-    });
-    await blog.save();
-    res.json(blog);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
-  }
-});
+// GET ALL BLOGS
+router.get('/', getAllBlogs);
 
+// CREATE BLOG (admin only)
+router.post('/', protect, isAdmin, upload.single('image'), createBlog);
 
-// READ all blogs
-router.get('/', async (req, res) => {
-  const blogs = await Blog.find();
-  res.json(blogs);
-});
+// DELETE BLOG (admin only)
+router.delete('/:id', protect, isAdmin, deleteBlog);
 
-// READ single blog
-router.get('/:id', async (req, res) => {
-  const blog = await Blog.findById(req.params.id);
-  res.json(blog);
-});
-
-// DELETE blog
-router.delete('/:id',  async (req, res) => {
-  await Blog.findByIdAndDelete(req.params.id);
-  res.json({ message: 'Blog deleted' });
-});
+// UPDATE BLOG IMAGE (admin only)
+router.put('/:id/image', protect, isAdmin, upload.single('image'), updateBlogImage);
 
 module.exports = router;

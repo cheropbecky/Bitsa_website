@@ -1,10 +1,13 @@
+// models/Blog.js
 const mongoose = require('mongoose');
 
 const blogSchema = new mongoose.Schema({
   title: { type: String, required: true },
   content: { type: String, required: true },
-  image: { type: String }, // filename or URL
   author: { type: String },
+  category: { type: String },
+  imageUrl: { type: String },   // Cloudinary URL
+  publicId: { type: String },   // Cloudinary public_id for deletion
   createdAt: { type: Date, default: Date.now }
 });
 
