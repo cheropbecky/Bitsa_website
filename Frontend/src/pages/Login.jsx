@@ -1,22 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { Lock, Mail, ArrowRight } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
-import { toast } from "sonner";
-import { Lock, Mail, ArrowRight } from "lucide-react";
-import api from "../api/api"; // ✅ Use your Axios instance
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import api from "../api/api"; // Axios instance
 
 function Login({ onLogin }) {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,38 +20,36 @@ function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      // ✅ Call correct backend login route
-      const res = await api.post("/users/login", { email, password });
+      const res = await api.post("/users/login", {
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-      // Save token + user in localStorage
+      // Save token and user info in localStorage
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      // Update parent state if needed
+      // Call onLogin callback if provided
       if (onLogin) onLogin(res.data.user, res.data.token);
 
-      toast.success("Login successful!");
+      toast.success(res.data.message || "Login successful!");
+      alert("Login successful!");
 
       // Redirect based on role
-      if (res.data.user.role === "admin") {
-        navigate("/admindashboard");
-      } else {
-        navigate("/userdashboard");
-      }
-
+      if (res.data.user.role === "admin") navigate("/admindashboard");
+      else navigate("/userdashboard");
     } catch (err) {
       console.error("Login error:", err);
-      toast.error(
-        err.response?.data?.msg || "Invalid email or password"
-      );
+      toast.error(err.response?.data?.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 relative overflow-hidden">
       <div className="absolute inset-0 bg-blue-100" />
+
       <motion.div
         className="absolute bottom-0 left-0 w-72 sm:w-96 h-72 sm:h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000"
         animate={{ y: [0, -15, 0], opacity: [0.2, 0.35, 0.2] }}
@@ -71,7 +63,7 @@ function Login({ onLogin }) {
         whileHover={{ scale: 1.02, boxShadow: "0 0 25px rgba(59,130,246,0.3)" }}
         className="w-full max-w-md sm:max-w-lg mx-auto"
       >
-        <Card className="w-full bg-blue-300 relative shadow-blue-300 shadow-2xl border-blue-100 backdrop-blur-md mx-auto">
+        <Card className="w-full bg-blue-300 shadow-2xl border-blue-100 backdrop-blur-md">
           <CardHeader className="space-y-3 text-center pb-8">
             <motion.div
               initial={{ scale: 0 }}
@@ -81,7 +73,7 @@ function Login({ onLogin }) {
             >
               <Lock className="w-8 h-8 text-white" />
             </motion.div>
-            <CardTitle className="text-4xl font-bold text-blue-600">Welcome Back, Becky</CardTitle>
+            <CardTitle className="text-4xl font-bold text-blue-600">Welcome Back</CardTitle>
             <CardDescription className="text-base font-bold">
               Sign in to access your BITSA account
             </CardDescription>
@@ -121,7 +113,7 @@ function Login({ onLogin }) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex justify-between text-sm">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                   <span className="text-gray-600">Remember me</span>
@@ -129,19 +121,15 @@ function Login({ onLogin }) {
                 <a href="#" className="text-blue-600 hover:text-blue-700 hover:underline">Forgot password?</a>
               </div>
 
-              <div className="flex justify-center">
-                <Button
-                  type="submit"
-                  variant="default"
-                  className="h-12 px-10 w-full rounded-3xl mx-auto font-bold bg-blue-300 shadow-md hover:bg-blue-400 transition-all group flex items-center justify-center"
-                  disabled={loading}
-                >
-                  {loading ? "Signing in..." : "Sign In"}
-                  {!loading && (
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  )}
-                </Button>
-              </div>
+              <Button
+                type="submit"
+                variant="default"
+                className="h-12 px-10 w-full rounded-3xl mx-auto font-bold bg-blue-300 shadow-md hover:bg-blue-400 transition-all group flex items-center justify-center"
+                disabled={loading}
+              >
+                {loading ? "Signing in..." : "Sign In"}
+                {!loading && <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+              </Button>
             </form>
           </CardContent>
         </Card>

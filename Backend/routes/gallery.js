@@ -1,54 +1,54 @@
 const express = require("express");
 const router = express.Router();
 const Gallery = require("../models/Gallery");
-const { protect, isAdmin } = require("../middleware/authMiddleware");
+const { verifyAdmin } = require("../middleware/authMiddleware");
 const multer = require("multer");
-const cloudinary = require("../config/cloudinary");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../config/cloudinary");
 
-// Multer memory storage (required to upload buffer to Cloudinary)
+// Multer memory storage (buffer upload)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // ==========================
 // CREATE Gallery Item (Admin)
 // ==========================
-router.post("/", protect, isAdmin, upload.single("image"), async (req, res) => {
+router.post("/", verifyAdmin, upload.single("image"), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No image uploaded" });
+    let imageUrl = null;
+    let publicId = null;
+
+    // 1️⃣ If admin provides image URL
+    if (req.body.imageUrl) {
+      imageUrl = req.body.imageUrl;
     }
 
-    // Upload buffer to Cloudinary
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: "bitsa_gallery" },
-      async (err, result) => {
-        if (err) {
-          console.error("Cloudinary upload error:", err);
-          return res.status(500).json({ message: "Cloudinary upload failed" });
-        }
+    // 2️⃣ If admin uploads a file
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, "bitsa_gallery");
+      imageUrl = result.url;
+      publicId = result.publicId;
+    }
 
-        // Save gallery item in MongoDB
-        const newItem = await Gallery.create({
-          title: req.body.title,
-          description: req.body.description,
-          imageUrl: result.secure_url,  // FULL URL for frontend
-          publicId: result.public_id,   // optional for deletion
-        });
+    if (!imageUrl) {
+      return res.status(400).json({ message: "Image file or URL required" });
+    }
 
-        res.status(201).json({ message: "Gallery item added", item: newItem });
-      }
-    );
+    const newItem = await Gallery.create({
+      title: req.body.title,
+      description: req.body.description,
+      imageUrl,
+      publicId,
+    });
 
-    uploadStream.end(req.file.buffer);
-
+    res.status(201).json({ message: "Gallery item added", item: newItem });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Gallery creation error:", err);
+    res.status(500).json({ message: "Failed to add gallery item" });
   }
 });
 
 // ==========================
-// READ ALL Gallery Items
+// GET ALL Gallery Items
 // ==========================
 router.get("/", async (req, res) => {
   try {
@@ -63,15 +63,12 @@ router.get("/", async (req, res) => {
 // ==========================
 // DELETE Gallery Item (Admin)
 // ==========================
-router.delete("/:id", protect, isAdmin, async (req, res) => {
+router.delete("/:id", verifyAdmin, async (req, res) => {
   try {
     const item = await Gallery.findById(req.params.id);
     if (!item) return res.status(404).json({ message: "Gallery item not found" });
 
-    // Delete from Cloudinary if publicId exists
-    if (item.publicId) {
-      await cloudinary.uploader.destroy(item.publicId);
-    }
+    if (item.publicId) await deleteFromCloudinary(item.publicId);
 
     await Gallery.findByIdAndDelete(req.params.id);
     res.json({ message: "Gallery item deleted" });

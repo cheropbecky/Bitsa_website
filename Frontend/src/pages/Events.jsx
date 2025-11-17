@@ -9,11 +9,7 @@ const Events = () => {
     const fetchEvents = async () => {
       try {
         const res = await fetch("http://localhost:5500/api/events");
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch events");
-        }
-
+        if (!res.ok) throw new Error("Failed to fetch events");
         const data = await res.json();
         setEvents(data);
       } catch (err) {
@@ -27,6 +23,11 @@ const Events = () => {
     fetchEvents();
   }, []);
 
+  // Helper: prepend backend URL if image is relative
+  const getImageSrc = (url) => {
+    return url.startsWith("http") ? url : `http://localhost:5500${url}`;
+  };
+
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Upcoming Events</h1>
@@ -37,12 +38,12 @@ const Events = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {events.map((event) => (
           <div
-            key={event._id}   // <-- FIXED KEY WARNING
-            className="border rounded-lg shadow p-4 bg-white"
+            key={event._id}
+            className="border rounded-lg shadow p-4 bg-white hover:shadow-lg transition-shadow duration-300"
           >
             {event.imageUrl && (
               <img
-                src={event.imageUrl}
+                src={getImageSrc(event.imageUrl)}
                 alt={event.title}
                 className="w-full h-40 object-cover rounded"
               />

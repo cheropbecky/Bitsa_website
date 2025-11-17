@@ -12,7 +12,7 @@ const { protect } = require('../middleware/authMiddleware');
 // -------------------- Multer Setup --------------------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Make sure this folder exists
+    cb(null, 'uploads/'); // Ensure this folder exists
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + path.extname(file.originalname)); // unique file name
@@ -27,19 +27,19 @@ const upload = multer({ storage });
 router.get('/', async (req, res) => {
   try {
     const users = await User.find().select('-password'); // exclude passwords
-    res.json(users);
+    res.json({ count: users.length, users });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
+    console.error('GET /users error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
 // GET logged-in user's profile
 router.get('/profile', protect, async (req, res) => {
   try {
-    res.json(req.user);
+    res.json({ user: req.user });
   } catch (err) {
-    console.error(err);
+    console.error('GET /profile error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -53,9 +53,9 @@ router.put('/profile', protect, upload.single('photo'), async (req, res) => {
     if (req.file) user.photo = `/uploads/${req.file.filename}`;
 
     await user.save();
-    res.json({ user });
+    res.json({ user, message: 'Profile updated successfully' });
   } catch (err) {
-    console.error(err);
+    console.error('PUT /profile error:', err);
     res.status(500).json({ message: 'Server error while updating profile' });
   }
 });
@@ -70,9 +70,7 @@ router.post('/register', async (req, res) => {
     }
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
+    if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -87,45 +85,82 @@ router.post('/register', async (req, res) => {
     });
 
     await newUser.save();
-    res.status(201).json(newUser);
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+      },
+    });
   } catch (err) {
-    console.error(err);
+    console.error('POST /register error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
 // POST login a user
 router.post('/login', async (req, res) => {
+  console.log('=========================');
+  console.log('User Login Attempt');
+  console.log('Request Body:', req.body);
+
   const { email, password } = req.body;
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: 'User not found' });
+    if (!user) {
+      console.log('User not found');
+      return res.status(400).json({ message: 'User not found' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: 'Invalid password' });
+    console.log('Password match:', isMatch);
+
+    if (!isMatch) {
+      console.log('Invalid password');
+      return res.status(400).json({ message: 'Invalid password' });
+    }
 
     // Create JWT token
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'your_jwt_secret',
       { expiresIn: '1d' }
     );
 
-    res.json({ token, user });
+    console.log('Login successful');
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        studentId: user.studentId,
+        course: user.course,
+        year: user.year,
+        photo: user.photo,
+      },
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    console.error('POST /login error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
 // DELETE a user by ID
 router.delete('/:id', async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ message: 'User deleted' });
+    const deleted = await User.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'User not found' });
+
+    res.json({ message: 'User deleted successfully' });
   } catch (err) {
-    console.error(err);
+    console.error('DELETE /users/:id error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

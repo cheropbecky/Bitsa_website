@@ -1,62 +1,106 @@
-const express = require("express");
+// routes/events.js
+const express = require('express');
 const router = express.Router();
-const multer = require("multer");
-const path = require("path");
-const Event = require("../models/Event");
+const multer = require('multer');
+const { 
+  getEvents, 
+  getEventById, 
+  createEvent, 
+  updateEvent, 
+  deleteEvent, 
+  registerEvent 
+} = require('../controllers/eventController');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
 
-// Configure Multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
+// -------------------- Multer Setup --------------------
+const storage = multer.memoryStorage(); // store files in memory
 const upload = multer({ storage });
 
+// -------------------- Routes --------------------
+
 // GET all events
-router.get("/", async (req, res) => {
+router.get('/', async (req, res) => {
+  console.log('[DEBUG] GET /api/events hit');
   try {
-    const events = await Event.find().sort({ createdAt: -1 });
-    res.json(events);
+    await getEvents(req, res);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch events" });
+    console.error('[ERROR] GET /api/events:', err);
+    res.status(500).json({ message: 'Server error fetching events', error: err.message });
   }
 });
 
-// CREATE event with optional image
-router.post("/", upload.single("image"), async (req, res) => {
+// GET event by ID
+router.get('/:id', async (req, res) => {
+  console.log(`[DEBUG] GET /api/events/${req.params.id} hit`);
   try {
-    const { title, description, date } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : "";
-
-    const newEvent = new Event({
-      title,
-      description,
-      date: date ? new Date(date) : undefined,
-      imageUrl,
-    });
-
-    await newEvent.save();
-    res.json(newEvent);
+    await getEventById(req, res);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Could not create event" });
+    console.error(`[ERROR] GET /api/events/${req.params.id}:`, err);
+    res.status(500).json({ message: 'Server error fetching event', error: err.message });
+  }
+});
+
+// CREATE event
+router.post('/', upload.single('image'), async (req, res) => {
+  console.log('[DEBUG] POST /api/events hit');
+  console.log('[DEBUG] req.body:', req.body);
+  console.log('[DEBUG] req.file:', req.file);
+
+  try {
+    let imageData = null;
+    if (req.file) {
+      console.log('[DEBUG] Uploading file to Cloudinary...');
+      imageData = await uploadToCloudinary(req.file); // expects buffer/file
+      console.log('[DEBUG] Cloudinary result:', imageData);
+    }
+
+    await createEvent({ ...req, body: { ...req.body, imageData } }, res);
+  } catch (err) {
+    console.error('[ERROR] Failed to create event:', err);
+    res.status(500).json({ message: 'Server error creating event', error: err.message });
+  }
+});
+
+// UPDATE event
+router.put('/:id', upload.single('image'), async (req, res) => {
+  console.log(`[DEBUG] PUT /api/events/${req.params.id} hit`);
+  console.log('[DEBUG] req.body:', req.body);
+  console.log('[DEBUG] req.file:', req.file);
+
+  try {
+    let imageData = null;
+    if (req.file) {
+      console.log('[DEBUG] Uploading updated file to Cloudinary...');
+      imageData = await uploadToCloudinary(req.file);
+      console.log('[DEBUG] Cloudinary result:', imageData);
+    }
+
+    await updateEvent({ ...req, body: { ...req.body, imageData } }, res);
+  } catch (err) {
+    console.error(`[ERROR] Failed to update event ${req.params.id}:`, err);
+    res.status(500).json({ message: 'Server error updating event', error: err.message });
   }
 });
 
 // DELETE event
-router.delete("/:id", async (req, res) => {
+router.delete('/:id', async (req, res) => {
+  console.log(`[DEBUG] DELETE /api/events/${req.params.id} hit`);
   try {
-    const deleted = await Event.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ error: "Event not found" });
-    res.json({ message: "Event deleted" });
+    await deleteEvent(req, res);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Could not delete event" });
+    console.error(`[ERROR] Failed to delete event ${req.params.id}:`, err);
+    res.status(500).json({ message: 'Server error deleting event', error: err.message });
+  }
+});
+
+// REGISTER for event
+router.post('/:id/register', async (req, res) => {
+  console.log(`[DEBUG] POST /api/events/${req.params.id}/register hit`);
+  try {
+    await registerEvent(req, res);
+  } catch (err) {
+    console.error(`[ERROR] Failed to register for event ${req.params.id}:`, err);
+    res.status(500).json({ message: 'Server error registering for event', error: err.message });
   }
 });
 

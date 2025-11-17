@@ -12,9 +12,9 @@ function BitsaAdminDashboard() {
   const [users, setUsers] = useState([]);
 
   // Forms
-  const [newBlog, setNewBlog] = useState({ title: "", author: "", category: "", image: null, content: "" });
-  const [newEvent, setNewEvent] = useState({ title: "", datetime: "", location: "", image: null, description: "" });
-  const [newImage, setNewImage] = useState({ url: "", title: "", description: "" });
+  const [newBlog, setNewBlog] = useState({ title: "", author: "", category: "", image: null, imageUrl: "", content: "" });
+  const [newEvent, setNewEvent] = useState({ title: "", datetime: "", location: "", image: null, imageUrl: "", description: "" });
+  const [newImage, setNewImage] = useState({ file: null, url: "", title: "", description: "" });
 
   // Toast notifications
   const [toast, setToast] = useState(null);
@@ -24,8 +24,9 @@ function BitsaAdminDashboard() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // --- Fetch Blogs on load ---
-  useEffect(() => { fetchBlogs(); }, []);
+  // Fetch functions
+  useEffect(() => { fetchBlogs(); fetchEvents(); fetchUsers(); }, []);
+
   const fetchBlogs = async () => {
     try {
       const res = await fetch("http://localhost:5500/api/blogs");
@@ -38,20 +39,40 @@ function BitsaAdminDashboard() {
     }
   };
 
+  const fetchEvents = async () => {
+    try {
+      const res = await fetch("http://localhost:5500/api/events");
+      if (!res.ok) throw new Error("Failed to fetch events");
+      const data = await res.json();
+      setEvents(data.events || data);
+    } catch (err) {
+      console.error(err);
+      setToast({ type: "error", message: "Error fetching events" });
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      if (!token) return;
+      const res = await fetch("http://localhost:5500/api/admin/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch users");
+      const data = await res.json();
+      setUsers(data.users || data);
+    } catch (err) {
+      console.error(err);
+      setToast({ type: "error", message: "Error fetching users" });
+    }
+  };
+
   // --- Blog Actions ---
   const createBlog = async (e) => {
     e.preventDefault();
-
     const token = localStorage.getItem("adminToken");
-    if (!token) {
-      setToast({ type: "error", message: "Admin not logged in!" });
-      return;
-    }
-
-    if (!newBlog.title || !newBlog.author || !newBlog.content) {
-      setToast({ type: "error", message: "Fill all required fields!" });
-      return;
-    }
+    if (!token) return setToast({ type: "error", message: "Admin not logged in!" });
+    if (!newBlog.title || !newBlog.author || !newBlog.content) return setToast({ type: "error", message: "Fill all required fields!" });
 
     try {
       const formData = new FormData();
@@ -60,19 +81,17 @@ function BitsaAdminDashboard() {
       formData.append("category", newBlog.category);
       formData.append("content", newBlog.content);
       if (newBlog.image) formData.append("image", newBlog.image);
-
-      console.log("Admin TOKEN:", token);
+      else if (newBlog.imageUrl) formData.append("imageUrl", newBlog.imageUrl);
 
       const res = await fetch("http://localhost:5500/api/blogs", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
-
       if (!res.ok) throw new Error("Failed to create blog");
       const savedBlog = await res.json();
       setBlogs([savedBlog, ...blogs]);
-      setNewBlog({ title: "", author: "", category: "", image: null, content: "" });
+      setNewBlog({ title: "", author: "", category: "", image: null, imageUrl: "", content: "" });
       setToast({ type: "success", message: "Blog created!" });
     } catch (err) {
       console.error(err);
@@ -82,11 +101,7 @@ function BitsaAdminDashboard() {
 
   const deleteBlog = async (id) => {
     const token = localStorage.getItem("adminToken");
-    if (!token) {
-      setToast({ type: "error", message: "Admin not logged in!" });
-      return;
-    }
-
+    if (!token) return setToast({ type: "error", message: "Admin not logged in!" });
     try {
       const res = await fetch(`http://localhost:5500/api/blogs/${id}`, {
         method: "DELETE",
@@ -102,45 +117,109 @@ function BitsaAdminDashboard() {
   };
 
   // --- Event Actions ---
-  const createEvent = async (e) => {
-    e.preventDefault();
-    if (!newEvent.title || !newEvent.datetime || !newEvent.description) {
-      setToast({ type: "error", message: "Fill all required fields!" });
-      return;
-    }
-    try {
-      const formData = new FormData();
-      formData.append("title", newEvent.title);
-      formData.append("description", newEvent.description);
-      formData.append("datetime", newEvent.datetime);
-      if (newEvent.image) formData.append("image", newEvent.image);
+  // --- Event Actions ---
+const createEvent = async (e) => {
+  e.preventDefault();
 
-      const res = await fetch("http://localhost:5500/api/events", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Failed to create event");
-      const savedEvent = await res.json();
-      setEvents([savedEvent, ...events]);
-      setNewEvent({ title: "", datetime: "", location: "", image: null, description: "" });
-      setToast({ type: "success", message: "Event created!" });
+  if (!newEvent.title || !newEvent.datetime || !newEvent.description) {
+    return setToast({ type: "error", message: "Fill all required fields!" });
+  }
+
+  const token = localStorage.getItem("adminToken");
+  if (!token) return setToast({ type: "error", message: "Admin not logged in!" });
+
+  try {
+    const formData = new FormData();
+    formData.append("title", newEvent.title);
+    formData.append("description", newEvent.description);
+    formData.append("datetime", newEvent.datetime);
+    formData.append("location", newEvent.location);
+
+    // Send image file if uploaded
+    if (newEvent.image) formData.append("image", newEvent.image);
+    // If imageUrl is provided without file, send it as a normal field
+    else if (newEvent.imageUrl) formData.append("imageUrl", newEvent.imageUrl);
+
+    const res = await fetch("http://localhost:5500/api/events", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || "Failed to create event");
+    }
+
+    const savedEvent = await res.json();
+    setEvents([savedEvent, ...events]);
+
+    setNewEvent({ title: "", datetime: "", location: "", image: null, imageUrl: "", description: "" });
+    setToast({ type: "success", message: "Event created!" });
+  } catch (err) {
+    console.error("Error creating event:", err);
+    setToast({ type: "error", message: err.message || "Error creating event." });
+  }
+};
+
+  const deleteEvent = async (id) => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) return setToast({ type: "error", message: "Admin not logged in!" });
+    try {
+      const res = await fetch(`http://localhost:5500/api/events/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to delete event");
+      setEvents(events.filter(e => e._id !== id));
+      setToast({ type: "success", message: "Event deleted" });
     } catch (err) {
       console.error(err);
-      setToast({ type: "error", message: "Error creating event." });
+      setToast({ type: "error", message: "Error deleting event." });
     }
-  };
-
-  const deleteEvent = (id) => {
-    setEvents(events.filter(e => e._id !== id));
-    setToast({ type: "success", message: "Event deleted" });
   };
 
   // --- Gallery Actions ---
-  const addImage = (e) => {
-    e.preventDefault();
-    if (!newImage.url) { setToast({ type: "error", message: "Image URL required!" }); return; }
-    const img = { id: Date.now(), ...newImage, createdAt: new Date().toISOString() };
-    setGallery([img, ...gallery]);
-    setNewImage({ url: "", title: "", description: "" });
-    setToast({ type: "success", message: "Image added!" });
-  };
+  const addImage = async (e) => {
+  e.preventDefault();
+
+  if (!newImage.file && !newImage.url) 
+    return setToast({ type: "error", message: "Image file or URL required!" });
+
+  try {
+    const token = localStorage.getItem("adminToken");
+    if (!token) return setToast({ type: "error", message: "Admin not logged in!" });
+
+    const formData = new FormData();
+    formData.append("title", newImage.title);
+    formData.append("description", newImage.description);
+    if (newImage.file) formData.append("image", newImage.file);
+    else if (newImage.url) formData.append("imageUrl", newImage.url);
+
+    const res = await fetch("http://localhost:5500/api/gallery", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`, // do NOT set Content-Type manually
+      },
+      body: formData,
+    });
+
+    const savedData = await res.json(); // parse JSON only once
+
+    if (!res.ok) throw new Error(savedData.message || "Failed to upload image");
+
+    // Update gallery with the actual item returned by backend
+    setGallery([savedData.item, ...gallery]);
+    setNewImage({ file: null, url: "", title: "", description: "" });
+    setToast({ type: "success", message: "Image uploaded successfully!" });
+
+  } catch (err) {
+    console.error("Error uploading image:", err);
+    setToast({ type: "error", message: err.message || "Error uploading image." });
+  }
+};
 
   const deleteImage = (id) => {
     setGallery(gallery.filter(g => g.id !== id));
@@ -148,8 +227,10 @@ function BitsaAdminDashboard() {
   };
 
   // --- Users Actions ---
-  const toggleAdmin = (userId) => {
-    setUsers(users.map(u => u.id === userId ? { ...u, isAdmin: !u.isAdmin } : u));
+  const toggleAdmin = async (userId) => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) return setToast({ type: "error", message: "Admin not logged in!" });
+    setUsers(users.map(u => u._id === userId ? { ...u, isAdmin: !u.isAdmin } : u));
     setToast({ type: "success", message: "Admin status updated!" });
   };
 
@@ -182,7 +263,6 @@ function BitsaAdminDashboard() {
 
       {/* Content */}
       <div className="relative z-10">
-        {/* Hero section */}
         <div className="min-h-[20vh] flex items-center justify-center">
           <h1 className="text-4xl md:text-6xl font-bold text-white text-center">
             Admin Dashboard
@@ -191,17 +271,21 @@ function BitsaAdminDashboard() {
 
         <main className="max-w-7xl mx-auto p-6">
           <Tabs />
+
           <div className="bg-blue-200 rounded-2xl p-6 shadow-sm">
+            {/* BLOGS TAB */}
             {tab === "blogs" && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Blog Form */}
                 <form onSubmit={createBlog} className="col-span-1 p-4 border border-blue-600 rounded-lg space-y-3">
                   <h2 className="font-semibold mb-3">➕ Create Blog Post</h2>
                   <input placeholder="Title*" value={newBlog.title} onChange={e => setNewBlog({...newBlog, title: e.target.value})} className="w-full p-2 border border-blue-400 rounded"/>
                   <input placeholder="Author*" value={newBlog.author} onChange={e => setNewBlog({...newBlog, author: e.target.value})} className="w-full p-2 border rounded border-blue-400"/>
                   <input placeholder="Category" value={newBlog.category} onChange={e => setNewBlog({...newBlog, category: e.target.value})} className="w-full p-2 border rounded border-blue-400"/>
+                  <input placeholder="Image URL" value={newBlog.imageUrl} onChange={e => setNewBlog({...newBlog, imageUrl: e.target.value})} className="w-full p-2 border rounded border-blue-400"/>
                   <input type="file" onChange={e => setNewBlog({...newBlog, image: e.target.files[0]})} />
-                  {newBlog.image && <img src={URL.createObjectURL(newBlog.image)} alt="preview" className="w-full h-32 object-cover rounded border-blue-400"/>}
+                  {(newBlog.image ? URL.createObjectURL(newBlog.image) : newBlog.imageUrl) && (
+                    <img src={newBlog.image ? URL.createObjectURL(newBlog.image) : newBlog.imageUrl} alt="preview" className="w-full h-32 object-cover rounded border-blue-400"/>
+                  )}
                   <textarea placeholder="Content*" value={newBlog.content} onChange={e => setNewBlog({...newBlog, content: e.target.value})} className="w-full p-2 border border-blue-400 rounded h-24"/>
                   <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg">Create Blog</button>
                 </form>
@@ -225,7 +309,7 @@ function BitsaAdminDashboard() {
                           <td className="p-2">{b.title}</td>
                           <td>{b.author}</td>
                           <td>{b.category}</td>
-                          <td>{b.createdAt}</td>
+                          <td>{new Date(b.createdAt).toLocaleDateString()}</td>
                           <td>
                             <button onClick={() => deleteBlog(b._id || b.id)} className="px-2 py-1 text-red-600 rounded hover:bg-red-50">🗑️</button>
                           </td>
@@ -237,7 +321,153 @@ function BitsaAdminDashboard() {
               </div>
             )}
 
-            {/* EVENTS, GALLERY, USERS tabs remain unchanged */}
+            {/* EVENTS TAB */}
+            {tab === "events" && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <form onSubmit={createEvent} className="col-span-1 p-4 border border-blue-600 rounded-lg space-y-3">
+                  <h2 className="font-semibold mb-3">➕ Create Event</h2>
+                  <input placeholder="Title*" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} className="w-full p-2 border border-blue-400 rounded"/>
+                  <input type="datetime-local" value={newEvent.datetime} onChange={e => setNewEvent({...newEvent, datetime: e.target.value})} className="w-full p-2 border border-blue-400 rounded"/>
+                  <input placeholder="Location" value={newEvent.location} onChange={e => setNewEvent({...newEvent, location: e.target.value})} className="w-full p-2 border border-blue-400 rounded"/>
+                  <input placeholder="Image URL" value={newEvent.imageUrl} onChange={e => setNewEvent({...newEvent, imageUrl: e.target.value})} className="w-full p-2 border rounded border-blue-400"/>
+                  <input type="file" onChange={e => setNewEvent({...newEvent, image: e.target.files[0]})} />
+                  {(newEvent.image ? URL.createObjectURL(newEvent.image) : newEvent.imageUrl) && (
+                    <img src={newEvent.image ? URL.createObjectURL(newEvent.image) : newEvent.imageUrl} alt="preview" className="w-full h-32 object-cover rounded border-blue-400"/>
+                  )}
+                  <textarea placeholder="Description*" value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} className="w-full p-2 border border-blue-400 rounded h-24"/>
+                  <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg">Create Event</button>
+                </form>
+
+                <div className="col-span-2 overflow-x-auto">
+                  <h3 className="font-semibold mb-3">All Events ({events.length})</h3>
+                  <table className="w-full text-left border">
+                    <thead className="bg-blue-50">
+                      <tr>
+                        <th className="p-2">Title</th>
+                        <th>Date/Time</th>
+                        <th>Location</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {events.map(e => (
+                        <tr key={e._id || e.id} className="hover:bg-gray-50">
+                          <td className="p-2">{e.title}</td>
+                          <td>{new Date(e.datetime).toLocaleString()}</td>
+                          <td>{e.location}</td>
+                          <td>
+                            <button onClick={() => deleteEvent(e._id || e.id)} className="px-2 py-1 text-red-600 rounded hover:bg-red-50">🗑️</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* GALLERY TAB */}
+{tab === "gallery" && (
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    {/* Upload Form */}
+    <form
+      onSubmit={addImage}
+      className="col-span-1 p-4 border border-blue-600 rounded-lg space-y-3"
+    >
+      <h2 className="font-semibold mb-3">➕ Add Gallery Image</h2>
+
+      <input
+        placeholder="Title"
+        value={newImage.title}
+        onChange={(e) =>
+          setNewImage({ ...newImage, title: e.target.value })
+        }
+        className="w-full p-2 border border-blue-400 rounded"
+      />
+      <textarea
+        placeholder="Description"
+        value={newImage.description}
+        onChange={(e) =>
+          setNewImage({ ...newImage, description: e.target.value })
+        }
+        className="w-full p-2 border border-blue-400 rounded h-24"
+      />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) =>
+          setNewImage({ ...newImage, file: e.target.files[0] })
+        }
+      />
+
+      {/* Preview */}
+      {newImage.file && (
+        <img
+          src={URL.createObjectURL(newImage.file)}
+          alt="preview"
+          className="w-full h-32 object-cover rounded border-blue-400"
+        />
+      )}
+
+      <button
+        type="submit"
+        className="w-full bg-blue-600 text-white py-2 rounded-lg"
+      >
+        Upload Image
+      </button>
+    </form>
+
+    {/* Gallery Grid */}
+    <div className="col-span-2 grid grid-cols-2 gap-4">
+      {gallery.map((g) => (
+        <div key={g._id || g.id} className="p-2 border rounded-lg relative">
+          <img
+            src={g.imageUrl || g.url}
+            alt={g.title}
+            className="w-full h-32 object-cover rounded"
+          />
+          <h4 className="font-semibold mt-1">{g.title}</h4>
+          <p className="text-sm">{g.description}</p>
+          <button
+            onClick={() => deleteImage(g._id || g.id)}
+            className="absolute top-2 right-2 text-red-600"
+          >
+            🗑️
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+            {/* USERS TAB */}
+            {tab === "users" && (
+              <div className="col-span-3 overflow-x-auto">
+                <h3 className="font-semibold mb-3">All Users ({users.length})</h3>
+                <table className="w-full text-left border">
+                  <thead className="bg-blue-50">
+                    <tr>
+                      <th className="p-2">Name</th>
+                      <th>Email</th>
+                      <th>Admin</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
+                      <tr key={u._id || u.id} className="hover:bg-gray-50">
+                        <td className="p-2">{u.name}</td>
+                        <td>{u.email}</td>
+                        <td>{u.isAdmin ? "✅" : "❌"}</td>
+                        <td>
+                          <button onClick={() => toggleAdmin(u._id || u.id)} className="px-2 py-1 text-blue-600 rounded hover:bg-blue-50">Toggle Admin</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </main>
 

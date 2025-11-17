@@ -1,25 +1,28 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const multer = require('multer');
-const upload = multer({ dest: 'temp/' }); // temp storage
-const { verifyAdmin } = require('../middleware/authMiddleware');
+const multer = require("multer");
+const { verifyAdmin } = require("../middleware/authMiddleware");
 const {
   createBlog,
   deleteBlog,
   updateBlogImage,
-  getAllBlogs
-} = require('../controllers/blogController');
+  getAllBlogs,
+} = require("../controllers/blogController");
 
-// GET ALL BLOGS (public)
-router.get('/', getAllBlogs);
+// Multer memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
-// CREATE BLOG (admin only)
-router.post('/', verifyAdmin, upload.single('image'), createBlog);
+// Public: Get all blogs
+router.get("/", getAllBlogs);
 
-// DELETE BLOG (admin only)
-router.delete('/:id', verifyAdmin, deleteBlog);
+// Admin: Create blog
+router.post("/", verifyAdmin, upload.single("image"), createBlog);
 
-// UPDATE BLOG IMAGE (admin only)
-router.put('/:id/image', verifyAdmin, upload.single('image'), updateBlogImage);
+// Admin: Delete blog
+router.delete("/:id", verifyAdmin, deleteBlog);
+
+// Admin: Update blog image
+router.put("/:id/image", verifyAdmin, upload.single("image"), updateBlogImage);
 
 module.exports = router;
