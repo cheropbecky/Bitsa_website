@@ -25,16 +25,29 @@ function AdminLogin() {
     setLoading(true);
 
     try {
-      if (email === "admin@bitsa.com" && password === "admin123") {
-        toast.success("Welcome, Admin!");
+      // Make API call to backend for authentication
+      const response = await fetch("http://localhost:5500/api/admin/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store the JWT token securely
+        localStorage.setItem("adminToken", data.token);
         localStorage.setItem("isAdmin", "true");
+        toast.success("Welcome, Admin!");
         navigate("/admindashboard");
       } else {
-        toast.error("Invalid admin credentials");
+        toast.error(data.message || "Invalid admin credentials");
       }
     } catch (err) {
       console.error("Login error:", err);
-      toast.error("Login failed");
+      toast.error("Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
