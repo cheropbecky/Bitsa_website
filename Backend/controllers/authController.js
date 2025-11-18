@@ -36,14 +36,29 @@ exports.registerUser = async (req, res) => {
 };
 
 // LOGIN USER
+// LOGIN USER (Corrected Logic)
 exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    // 1. Find the user
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid email" });
+    if (!user) {
+      // Return 401 Unauthorized for security (or 400 as you had)
+      return res.status(401).json({ message: "Invalid credentials" }); 
+    }
 
+    // 2. Check password match
     const isMatch = await user.matchPassword(password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid password" });
+    
+    // 🚨 NEW CRITICAL STEP: Check if the password matches 🚨
+    if (!isMatch) {
+      // Return 401 Unauthorized if the password is wrong
+      return res.status(401).json({ message: "Invalid credentials" }); 
+    }
+
+    // 3. If match is successful, generate token and respond
+    const token = generateToken(user._id);
 
     res.json({
       message: "Login successful",
@@ -56,13 +71,13 @@ exports.loginUser = async (req, res) => {
         course: user.course,
         year: user.year,
       },
-      token: generateToken(user._id),
+      token,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Login failed:", err.message);
+    res.status(500).json({ message: 'Server error during login' });
   }
 };
-
 // GET LOGGED-IN USER
 exports.getMe = async (req, res) => {
   try {

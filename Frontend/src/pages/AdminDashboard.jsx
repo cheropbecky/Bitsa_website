@@ -13,14 +13,15 @@ function AdminDashboard() {
   const [messages, setMessages] = useState([]);
 
   // Forms
-  const [newBlog, setNewBlog] = useState({
+  const initialBlogState = {
     title: "",
     author: "",
     category: "",
     image: null,
     imageUrl: "",
     content: "",
-  });
+  };
+  const [newBlog, setNewBlog] = useState(initialBlogState);
 
   const [newEvent, setNewEvent] = useState({
     title: "",
@@ -37,6 +38,13 @@ function AdminDashboard() {
     title: "",
     description: "",
   });
+  
+  // 🔑 NEW STATE FOR EDITING
+  const [editingBlogId, setEditingBlogId] = useState(null);
+  const [editingBlogData, setEditingBlogData] = useState(initialBlogState);
+  
+  // NEW STATE: To prevent double submission/handle loading
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -127,13 +135,29 @@ function AdminDashboard() {
     }
   };
 
-  // ------------------ BLOGS ------------------
+  // ------------------ BLOGS ACTIONS ------------------
+
+  // Function to initialize editing
+  const startEditBlog = (blog) => {
+    setEditingBlogId(blog._id || blog.id);
+    setEditingBlogData({
+      title: blog.title,
+      author: blog.author,
+      category: blog.category,
+      imageUrl: blog.imageUrl || "",
+      content: blog.content,
+      image: null, // Clear file input when editing starts
+    });
+  };
+
+  // 1. CREATE Blog
   const createBlog = async (e) => {
     e.preventDefault();
     if (!adminToken) return setToast({ type: "error", message: "Admin not logged in!" });
     if (!newBlog.title || !newBlog.author || !newBlog.content)
       return setToast({ type: "error", message: "Fill all required fields!" });
-
+      
+    setIsSubmitting(true);
     try {
       const formData = new FormData();
       formData.append("title", newBlog.title);
@@ -152,14 +176,68 @@ function AdminDashboard() {
       if (!res.ok) throw new Error("Failed to create blog");
       const savedBlog = await res.json();
       setBlogs([savedBlog, ...blogs]);
-      setNewBlog({ title: "", author: "", category: "", image: null, imageUrl: "", content: "" });
+      setNewBlog(initialBlogState);
       setToast({ type: "success", message: "Blog created!" });
     } catch (err) {
       console.error(err);
       setToast({ type: "error", message: "Error creating blog." });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
+  // 2. UPDATE Blog
+  const updateBlog = async (e) => {
+    e.preventDefault();
+    if (!adminToken) return setToast({ type: "error", message: "Admin not logged in!" });
+    if (!editingBlogData.title || !editingBlogData.author || !editingBlogData.content)
+      return setToast({ type: "error", message: "Fill all required fields!" });
+
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("title", editingBlogData.title);
+      formData.append("author", editingBlogData.author);
+      formData.append("category", editingBlogData.category);
+      formData.append("content", editingBlogData.content);
+      
+      // Only append image/imageUrl if it's a new file or the URL is present
+      if (editingBlogData.image) {
+          formData.append("image", editingBlogData.image);
+      } else if (editingBlogData.imageUrl) {
+          formData.append("imageUrl", editingBlogData.imageUrl);
+      }
+      
+      // Use PUT method for updating
+      const res = await fetch(`http://localhost:5500/api/blogs/${editingBlogId}`, {
+        method: "PUT",
+        headers: { 
+            Authorization: `Bearer ${adminToken}`,
+            // NOTE: Do NOT set Content-Type: 'application/json' when sending FormData
+        }, 
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Failed to update blog");
+      const updatedBlog = await res.json();
+
+      // Update the list of blogs with the new data
+      setBlogs(blogs.map(b => (b._id || b.id) === editingBlogId ? updatedBlog : b));
+      
+      // Reset state
+      setEditingBlogId(null);
+      setEditingBlogData(initialBlogState);
+      setToast({ type: "success", message: "Blog updated!" });
+    } catch (err) {
+      console.error(err);
+      setToast({ type: "error", message: "Error updating blog." });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+
+  // 3. DELETE Blog
   const deleteBlog = async (id) => {
     if (!adminToken) return setToast({ type: "error", message: "Admin not logged in!" });
     try {
@@ -314,7 +392,10 @@ function AdminDashboard() {
       {["blogs", "events", "gallery", "users", "messages"].map((t) => (
         <button
           key={t}
-          onClick={() => setTab(t)}
+          onClick={() => {
+            setTab(t);
+            setEditingBlogId(null); // Exit edit mode when changing tabs
+          }}
           className={`px-4 py-2 rounded-lg font-medium transition-colors duration-300 ${
             tab === t ? "bg-blue-600 text-white shadow-lg" : "bg-blue-200 text-gray-700 hover:bg-blue-300"
           }`}
@@ -324,6 +405,75 @@ function AdminDashboard() {
       ))}
     </div>
   );
+  
+  // ------------------ RENDER HELPER: Blog Form (Create/Edit) ------------------
+  const BlogForm = ({ type, data, setData, handleSubmit, handleCancel }) => {
+      const isCreate = type === 'create';
+      const submitText = isCreate ? 'Create Blog' : 'Save Changes';
+      const formTitle = isCreate ? '➕ Create Blog Post' : '✏️ Edit Blog Post';
+      const currentData = data;
+      const setCurrentData = setData;
+
+      const currentImageSource = currentData.image 
+        ? URL.createObjectURL(currentData.image) 
+        : currentData.imageUrl;
+
+      return (
+        <form onSubmit={handleSubmit} className="col-span-1 p-4 border border-blue-600 rounded-lg space-y-3">
+          <h2 className="font-semibold mb-3">{formTitle}</h2>
+          <input 
+            placeholder="Title*" 
+            value={currentData.title || ''} // Safety check
+            onChange={e => setCurrentData({...currentData, title: e.target.value})} 
+            className="w-full p-2 border border-blue-400 rounded"
+          />
+          <input 
+            placeholder="Author*" 
+            value={currentData.author || ''} // Safety check
+            onChange={e => setCurrentData({...currentData, author: e.target.value})} 
+            className="w-full p-2 border border-blue-400 rounded"
+          />
+          <input 
+            placeholder="Category" 
+            value={currentData.category || ''} // Safety check
+            onChange={e => setCurrentData({...currentData, category: e.target.value})} 
+            className="w-full p-2 border border-blue-400 rounded"
+          />
+          <input 
+            placeholder="Image URL" 
+            value={currentData.imageUrl || ''} // Safety check
+            onChange={e => setCurrentData({...currentData, imageUrl: e.target.value, image: null})} 
+            className="w-full p-2 border border-blue-400 rounded"
+          />
+          <input 
+            type="file" 
+            onChange={e => setCurrentData({...currentData, image: e.target.files[0], imageUrl: ""})}
+            className="w-full"
+          />
+          {currentImageSource && (
+            <img src={currentImageSource} alt="preview" className="w-full h-32 object-cover rounded border-blue-400"/>
+          )}
+          <textarea 
+            placeholder="Content*" 
+            value={currentData.content || ''} // Safety check
+            onChange={e => setCurrentData({...currentData, content: e.target.value})} 
+            className="w-full p-2 border border-blue-400 rounded h-24"
+          />
+          <div className="flex space-x-2">
+            {!isCreate && (
+                <button type="button" onClick={handleCancel} className="w-1/2 bg-gray-400 text-white py-2 rounded-lg hover:bg-gray-500 transition-colors" disabled={isSubmitting}>Cancel</button>
+            )}
+            <button 
+              type="submit" 
+              className={`py-2 rounded-lg transition-colors ${isCreate ? 'w-full bg-blue-600 hover:bg-blue-700' : 'w-1/2 bg-green-600 hover:bg-green-700'} text-white`}
+              disabled={isSubmitting} // Use the state from AdminDashboard
+            >
+              {isSubmitting ? 'Processing...' : submitText}
+            </button>
+          </div>
+        </form>
+      );
+  }
 
   // ------------------ RENDER ------------------
   return (
@@ -347,20 +497,25 @@ function AdminDashboard() {
             {/* BLOGS */}
             {tab === "blogs" && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Blog Form */}
-                <form onSubmit={createBlog} className="col-span-1 p-4 border border-blue-600 rounded-lg space-y-3">
-                  <h2 className="font-semibold mb-3">➕ Create Blog Post</h2>
-                  <input placeholder="Title*" value={newBlog.title} onChange={e => setNewBlog({...newBlog, title: e.target.value})} className="w-full p-2 border border-blue-400 rounded"/>
-                  <input placeholder="Author*" value={newBlog.author} onChange={e => setNewBlog({...newBlog, author: e.target.value})} className="w-full p-2 border border-blue-400 rounded"/>
-                  <input placeholder="Category" value={newBlog.category} onChange={e => setNewBlog({...newBlog, category: e.target.value})} className="w-full p-2 border border-blue-400 rounded"/>
-                  <input placeholder="Image URL" value={newBlog.imageUrl} onChange={e => setNewBlog({...newBlog, imageUrl: e.target.value})} className="w-full p-2 border border-blue-400 rounded"/>
-                  <input type="file" onChange={e => setNewBlog({...newBlog, image: e.target.files[0]})} />
-                  {(newBlog.image ? URL.createObjectURL(newBlog.image) : newBlog.imageUrl) && (
-                    <img src={newBlog.image ? URL.createObjectURL(newBlog.image) : newBlog.imageUrl} alt="preview" className="w-full h-32 object-cover rounded border-blue-400"/>
-                  )}
-                  <textarea placeholder="Content*" value={newBlog.content} onChange={e => setNewBlog({...newBlog, content: e.target.value})} className="w-full p-2 border border-blue-400 rounded h-24"/>
-                  <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">Create Blog</button>
-                </form>
+                
+                {/* 🔑 Blog Form (Dynamically switches between Create and Edit) */}
+                {editingBlogId ? (
+                    <BlogForm
+                        type="edit"
+                        data={editingBlogData}
+                        setData={setEditingBlogData}
+                        handleSubmit={updateBlog}
+                        handleCancel={() => setEditingBlogId(null)}
+                    />
+                ) : (
+                    <BlogForm
+                        type="create"
+                        data={newBlog}
+                        setData={setNewBlog}
+                        handleSubmit={createBlog}
+                    />
+                )}
+                
 
                 {/* Blog List */}
                 <div className="col-span-2 overflow-x-auto">
@@ -382,7 +537,15 @@ function AdminDashboard() {
                           <td>{b.author}</td>
                           <td>{b.category}</td>
                           <td>{new Date(b.createdAt).toLocaleDateString()}</td>
-                          <td>
+                          <td className="whitespace-nowrap">
+                            {/* 🔑 EDIT BUTTON ADDED HERE */}
+                            <button 
+                                onClick={() => startEditBlog(b)} 
+                                className="px-2 py-1 text-blue-600 rounded hover:bg-blue-50 transition-colors mr-2"
+                                disabled={editingBlogId === (b._id || b.id)}
+                            >
+                                ✏️
+                            </button>
                             <button onClick={() => deleteBlog(b._id || b.id)} className="px-2 py-1 text-red-600 rounded hover:bg-red-50 transition-colors">🗑️</button>
                           </td>
                         </tr>

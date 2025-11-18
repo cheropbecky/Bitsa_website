@@ -8,9 +8,14 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import api from "../api/api"; // Axios instance
+import { useAuth } from "../context/AuthContext"; // ⬅️ NEW: Import useAuth hook
 
-function Login({ onLogin }) {
+// The function component no longer accepts the 'onLogin' prop
+function Login() {
   const navigate = useNavigate();
+  // 🔑 Extract the 'login' function from the global context
+  const { login } = useAuth(); 
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,21 +30,18 @@ function Login({ onLogin }) {
         password,
       });
 
-      // Save token and user info in localStorage
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-
-      // Call onLogin callback if provided
-      if (onLogin) onLogin(res.data.user, res.data.token);
+      // 🔄 Use the context's login function to update global state and localStorage
+      login(res.data.user, res.data.token);
 
       toast.success(res.data.message || "Login successful!");
-      alert("Login successful!");
+      // alert("Login successful!"); // Removed redundant alert for cleaner UX
 
       // Redirect based on role
       if (res.data.user.role === "admin") navigate("/admindashboard");
       else navigate("/userdashboard");
     } catch (err) {
       console.error("Login error:", err);
+      // Enhanced error message access
       toast.error(err.response?.data?.message || "Invalid email or password");
     } finally {
       setLoading(false);
@@ -124,7 +126,7 @@ function Login({ onLogin }) {
               <Button
                 type="submit"
                 variant="default"
-                className="h-12 px-10 w-full rounded-3xl mx-auto font-bold bg-blue-300 shadow-md hover:bg-blue-400 transition-all group flex items-center justify-center"
+                className="h-12 px-10 w-full rounded-3xl mx-auto font-bold bg-blue-600 text-white shadow-md hover:bg-blue-700 transition-all group flex items-center justify-center"
                 disabled={loading}
               >
                 {loading ? "Signing in..." : "Sign In"}
