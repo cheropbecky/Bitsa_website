@@ -2,104 +2,137 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { 
-  getEvents, 
-  getEventById, 
-  createEvent, 
-  updateEvent, 
-  deleteEvent, 
-  registerEvent 
-} = require('../controllers/eventController');
+const mongoose = require('mongoose');
+const Event = require('../models/Event');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
 
-// -------------------- Multer Setup --------------------
-const storage = multer.memoryStorage(); // store files in memory
+// Multer memory storage
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// -------------------- Routes --------------------
-
-// GET all events
+// ---------------- GET ALL EVENTS ----------------
 router.get('/', async (req, res) => {
-  console.log('[DEBUG] GET /api/events hit');
   try {
-    await getEvents(req, res);
+    const events = await Event.find()
+      .sort({ date: -1 })
+      .populate('registeredUsers', 'name email');
+    res.json(events);
   } catch (err) {
-    console.error('[ERROR] GET /api/events:', err);
+    console.error('Error fetching events:', err);
     res.status(500).json({ message: 'Server error fetching events', error: err.message });
   }
 });
 
-// GET event by ID
+// ---------------- GET EVENT BY ID ----------------
 router.get('/:id', async (req, res) => {
-  console.log(`[DEBUG] GET /api/events/${req.params.id} hit`);
   try {
-    await getEventById(req, res);
+    const event = await Event.findById(req.params.id)
+      .populate('registeredUsers', 'name email');
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+    res.json(event);
   } catch (err) {
-    console.error(`[ERROR] GET /api/events/${req.params.id}:`, err);
+    console.error('Error fetching event:', err);
     res.status(500).json({ message: 'Server error fetching event', error: err.message });
   }
 });
 
-// CREATE event
+// ---------------- CREATE EVENT ----------------
 router.post('/', upload.single('image'), async (req, res) => {
-  console.log('[DEBUG] POST /api/events hit');
-  console.log('[DEBUG] req.body:', req.body);
-  console.log('[DEBUG] req.file:', req.file);
-
   try {
-    let imageData = null;
-    if (req.file) {
-      console.log('[DEBUG] Uploading file to Cloudinary...');
-      imageData = await uploadToCloudinary(req.file); // expects buffer/file
-      console.log('[DEBUG] Cloudinary result:', imageData);
+    const { title, description, date, location, status } = req.body;
+
+    if (!title || !description || !date) {
+      return res.status(400).json({ message: "Title, description, and date are required" });
     }
 
-    await createEvent({ ...req, body: { ...req.body, imageData } }, res);
+    let imageData = null;
+    if (req.file) {
+      imageData = await uploadToCloudinary(req.file.buffer);
+    }
+
+    const eventData = {
+      title,
+      description,
+      date: new Date(date),
+      location: location || "",
+      status: status || "Upcoming",
+      imageUrl: imageData?.url || null,
+      publicId: imageData?.publicId || null,
+      registeredUsers: []
+    };
+
+    const event = new Event(eventData);
+    await event.save();
+    res.status(201).json({ message: 'Event created successfully', event });
   } catch (err) {
-    console.error('[ERROR] Failed to create event:', err);
+    console.error('Error creating event:', err);
     res.status(500).json({ message: 'Server error creating event', error: err.message });
   }
 });
 
-// UPDATE event
+// ---------------- UPDATE EVENT ----------------
 router.put('/:id', upload.single('image'), async (req, res) => {
-  console.log(`[DEBUG] PUT /api/events/${req.params.id} hit`);
-  console.log('[DEBUG] req.body:', req.body);
-  console.log('[DEBUG] req.file:', req.file);
-
   try {
-    let imageData = null;
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    const { title, description, date, location, status } = req.body;
+    if (title) event.title = title;
+    if (description) event.description = description;
+    if (date) event.date = new Date(date);
+    if (location) event.location = location;
+    if (status) event.status = status;
+
     if (req.file) {
-      console.log('[DEBUG] Uploading updated file to Cloudinary...');
-      imageData = await uploadToCloudinary(req.file);
-      console.log('[DEBUG] Cloudinary result:', imageData);
+      if (event.publicId) await deleteFromCloudinary(event.publicId);
+      const imageData = await uploadToCloudinary(req.file.buffer);
+      event.imageUrl = imageData.url;
+      event.publicId = imageData.publicId;
     }
 
-    await updateEvent({ ...req, body: { ...req.body, imageData } }, res);
+    await event.save();
+    res.json({ message: 'Event updated successfully', event });
   } catch (err) {
-    console.error(`[ERROR] Failed to update event ${req.params.id}:`, err);
+    console.error('Error updating event:', err);
     res.status(500).json({ message: 'Server error updating event', error: err.message });
   }
 });
 
-// DELETE event
+// ---------------- DELETE EVENT ----------------
 router.delete('/:id', async (req, res) => {
-  console.log(`[DEBUG] DELETE /api/events/${req.params.id} hit`);
   try {
-    await deleteEvent(req, res);
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    if (event.publicId) await deleteFromCloudinary(event.publicId);
+    await event.deleteOne(); // ✅ Fixed
+
+    res.json({ message: 'Event deleted successfully' });
   } catch (err) {
-    console.error(`[ERROR] Failed to delete event ${req.params.id}:`, err);
+    console.error('Error deleting event:', err);
     res.status(500).json({ message: 'Server error deleting event', error: err.message });
   }
 });
 
-// REGISTER for event
+// ---------------- REGISTER FOR EVENT ----------------
 router.post('/:id/register', async (req, res) => {
-  console.log(`[DEBUG] POST /api/events/${req.params.id}/register hit`);
   try {
-    await registerEvent(req, res);
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: 'User ID is required' });
+
+    if (event.registeredUsers.includes(userId)) {
+      return res.status(400).json({ message: 'User already registered for this event' });
+    }
+
+    event.registeredUsers.push(mongoose.Types.ObjectId(userId));
+    await event.save();
+
+    res.json({ message: 'Successfully registered', event });
   } catch (err) {
-    console.error(`[ERROR] Failed to register for event ${req.params.id}:`, err);
+    console.error('Error registering for event:', err);
     res.status(500).json({ message: 'Server error registering for event', error: err.message });
   }
 });

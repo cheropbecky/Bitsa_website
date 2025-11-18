@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { X, Image as ImageIcon, Calendar } from "lucide-react";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "../components/ui/card";
+import heroPicture from "../assets/hero_bitsa.jpg";
 
 function Gallery() {
   const [images, setImages] = useState([]);
@@ -16,12 +18,11 @@ function Gallery() {
         setImages(data);
       } catch (err) {
         console.error(err);
-        setImages([]); // fallback
+        setImages([]);
       } finally {
         setLoading(false);
       }
     };
-
     fetchGallery();
   }, []);
 
@@ -33,29 +34,32 @@ function Gallery() {
     });
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 py-16">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 text-center">
-        <div className="inline-block bg-blue-600 text-white px-4 py-1 rounded-full text-sm mb-4">
-          Our Gallery
-        </div>
-        <h1 className="text-5xl md:text-6xl mb-4 text-gray-900">
-          Event <span className="text-gradient-blue">Highlights</span>
-        </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Relive the memorable moments from our events and activities
-        </p>
+    <div className="relative min-h-screen flex flex-col">
+      {/* Static Background */}
+      <div
+        className="fixed inset-0 bg-cover bg-center z-0"
+        style={{ backgroundImage: `url(${heroPicture})` }}
+      >
+        <div className="absolute inset-0 bg-black/40"></div>
       </div>
 
-      {/* Gallery Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Header */}
+      <header className="relative z-10 py-6 text-center text-white bg-black/20 backdrop-blur-sm">
+        <h1 className="text-4xl md:text-5xl font-bold">Capturing the BITSA Spirit</h1>
+        <p className="text-lg mt-2 font-semibold">
+          Relive the most memorable moments from our events and activities
+        </p>
+      </header>
+
+      {/* Scrollable Content */}
+      <main className="relative z-10 flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-            <p className="mt-4 text-gray-600">Loading gallery...</p>
+            <p className="mt-4 text-gray-100">Loading gallery...</p>
           </div>
         ) : images.length === 0 ? (
-          <Card className="text-center p-12 shadow-blue-lg border-blue-100 bg-white">
+          <Card className="text-center p-12 shadow border border-blue-200 bg-white/90">
             <CardContent>
               <ImageIcon className="w-16 h-16 mx-auto mb-4 text-blue-400" />
               <p className="text-xl text-gray-600">No photos yet.</p>
@@ -65,44 +69,55 @@ function Gallery() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {images.map((image) => (
-              <div
+          <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {images.map((image, index) => (
+              <motion.div
                 key={image._id}
-                className="group relative aspect-square cursor-pointer overflow-hidden rounded-2xl shadow-lg hover:shadow-blue-xl transition-all duration-300 hover:-translate-y-2"
+                className="group cursor-pointer"
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
+                whileHover={{ scale: 1.05, y: -5, transition: { duration: 0.3 } }}
                 onClick={() => setSelectedImage(image)}
               >
-                <img
-                  src={image.imageUrl}
-                  alt={image.title || "Gallery image"}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                  <h3 className="text-white mb-1 line-clamp-2">{image.title}</h3>
-                  {image.description && (
-                    <p className="text-white/80 text-sm line-clamp-2">
-                      {image.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Corner Badge */}
-                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs text-gray-700">
-                  <Calendar className="w-3 h-3 inline mr-1" />
-                  {formatDate(image.createdAt)}
-                </div>
-              </div>
+                <Card className="overflow-hidden p-2 rounded-2xl shadow-lg shadow-blue-400 transition-all duration-300">
+                  <div className="relative">
+                    <motion.img
+                      src={image.imageUrl}
+                      alt={image.title || "Gallery image"}
+                      className="w-full h-56 object-cover transition-transform rounded-lg"
+                      whileHover={{ scale: 1.08 }}
+                    />
+                    <div className="absolute top-3 right-3 bg-blue-500 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold text-white flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {formatDate(image.createdAt)}
+                    </div>
+                  </div>
+                  <CardContent className="p-4 -mt-2">
+                    <h3 className="text-lg font-semibold text-blue-600 mb-1 line-clamp-2">
+                      {image.title}
+                    </h3>
+                    {image.description && (
+                      <p className="text-gray-800 font-bold text-sm line-clamp-2">
+                        {image.description}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         )}
-      </div>
+      </main>
 
+      
       {/* Lightbox Modal */}
       {selectedImage && (
-        <div
-          className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+        <motion.div
+          className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           onClick={() => setSelectedImage(null)}
         >
           <button
@@ -111,23 +126,16 @@ function Gallery() {
           >
             <X className="w-8 h-8" />
           </button>
-
-          <div
-            className="max-w-5xl w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="max-w-5xl w-full" onClick={(e) => e.stopPropagation()}>
             <img
               src={selectedImage.imageUrl}
               alt={selectedImage.title}
               className="w-full h-auto max-h-[80vh] object-contain rounded-2xl shadow-2xl"
             />
-
             <div className="mt-6 text-center bg-white/10 backdrop-blur-md rounded-2xl p-6">
               <h2 className="text-3xl text-white mb-3">{selectedImage.title}</h2>
               {selectedImage.description && (
-                <p className="text-blue-100 text-lg mb-4">
-                  {selectedImage.description}
-                </p>
+                <p className="text-gray-400 text-lg mb-4">{selectedImage.description}</p>
               )}
               <div className="flex items-center justify-center gap-2 text-blue-200">
                 <Calendar className="w-5 h-5" />
@@ -135,7 +143,7 @@ function Gallery() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

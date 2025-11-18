@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
 
-const adminSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
+const gallerySchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String },      
+  imageUrl: { type: String, required: true },
+  publicId: { type: String },
+  createdAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model('Admin', adminSchema);
+module.exports = mongoose.model('Gallery', gallerySchema);

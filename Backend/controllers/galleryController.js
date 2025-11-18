@@ -15,33 +15,41 @@ exports.getGallery = async (req, res) => {
 // ADD gallery item (admin)
 exports.addGalleryItem = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No image uploaded" });
+    let imageUrl = "";
+    let publicId = "";
 
-    // Upload to Cloudinary
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: "bitsa_gallery" },
-      async (err, result) => {
-        if (err) {
-          console.error("Cloudinary upload error:", err);
-          return res.status(500).json({ message: "Cloudinary upload failed" });
-        }
+    if (req.file) {
+      // Upload file to Cloudinary
+      const result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { folder: "bitsa_gallery" },
+          (err, result) => {
+            if (err) return reject(err);
+            resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
 
-        // Save to DB
-        const newItem = await Gallery.create({
-          title: req.body.title,
-          description: req.body.description,
-          imageUrl: result.secure_url,
-          publicId: result.public_id,
-        });
+      imageUrl = result.secure_url;
+      publicId = result.public_id;
+    } else if (req.body.imageUrl) {
+      // If user provides an image URL instead of uploading a file
+      imageUrl = req.body.imageUrl;
+    } else {
+      return res.status(400).json({ message: "No image uploaded or URL provided" });
+    }
 
-        res.status(201).json({ message: "Gallery item added", item: newItem });
-      }
-    );
+    const newItem = await Gallery.create({
+      title: req.body.title || "Untitled",
+      description: req.body.description || "",
+      imageUrl,
+      publicId,
+    });
 
-    uploadStream.end(req.file.buffer);
-
+    res.status(201).json({ message: "Gallery item added", item: newItem });
   } catch (err) {
-    console.error(err);
+    console.error("Error adding gallery item:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -52,7 +60,7 @@ exports.deleteGalleryItem = async (req, res) => {
     const item = await Gallery.findById(req.params.id);
     if (!item) return res.status(404).json({ message: "Gallery item not found" });
 
-    // Delete image from Cloudinary
+    // Delete image from Cloudinary if exists
     if (item.publicId) {
       await cloudinary.uploader.destroy(item.publicId);
     }

@@ -1,12 +1,14 @@
-const mongoose = require("mongoose");
+// models/Event.js
+const mongoose = require('mongoose');
 
 const eventSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
-  location: { type: String },
-  date: { type: Date },
-  imageUrl: { type: String },         // URL of Cloudinary or manual
-  cloudinaryId: { type: String },     // store public_id to delete later
-}, { timestamps: true });
+  date: { type: Date, required: true },
+  location: { type: String, default: '' },
+  imageUrl: { type: String },
+  publicId: { type: String },
+  registeredUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // NEW
+});
 
-module.exports = mongoose.model("Event", eventSchema);
+module.exports = mongoose.model('Event', eventSchema);
