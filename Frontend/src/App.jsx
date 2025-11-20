@@ -8,7 +8,6 @@ import Events from './pages/Events';
 import Gallery from './pages/Gallery';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
-import Signup from './pages/Signup';
 import Register from './pages/Register';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
@@ -41,6 +40,12 @@ function App() {
     // Save to localStorage
     localStorage.setItem('user', JSON.stringify(loggedInUser));
     localStorage.setItem('token', jwtToken);
+    
+    // If user is admin, also store adminToken
+    if (loggedInUser.role === "admin") {
+      localStorage.setItem('adminToken', jwtToken);
+      localStorage.setItem('isAdmin', 'true');
+    }
   };
 
   const handleLogout = () => {
@@ -49,6 +54,8 @@ function App() {
     setToken(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('isAdmin');
   };
 
   return (
@@ -66,7 +73,6 @@ function App() {
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
-        <Route path="/signup" element={<Signup />} />
         <Route path="/register" element={<Register onLogin={handleLogin} />} />
         <Route path="/userdashboard" element={<UserDashboard accessToken={token} />} />
         <Route path="/admindashboard" element={<AdminDashboard />} />

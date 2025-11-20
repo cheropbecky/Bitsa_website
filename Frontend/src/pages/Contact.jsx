@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Phone, MapPin, User, Clock, Send, MessageSquare } from "lucide-react";
-import heroPicture from "../assets/hero_bitsa.jpg"; // same background
+import { Mail, Phone, MapPin, Clock, Send, MessageSquare } from "lucide-react";
+import heroPicture from "../assets/hero_bitsa.jpg";
+import api from "../api/api";
 
 function Contact() {
   const [formData, setFormData] = useState({
@@ -16,7 +17,7 @@ function Contact() {
       name: "Alpha Chamba",
       role: "Chairperson",
       email: "Chamba@gmail.com",
-      phone: "0708898899 ",
+      phone: "0708898899",
       img: "https://randomuser.me/api/portraits/men/32.jpg",
     },
     {
@@ -31,45 +32,38 @@ function Contact() {
       role: "Secretary",
       email: "gaithisahron@gmail.com",
       phone: "0798863568",
-      img:" https://randomuser.me/api/portraits/women/45.jpg" ,
+      img: "https://randomuser.me/api/portraits/women/45.jpg",
     },
     {
       name: "Maina Davies",
       role: "Treasurer",
-      email: "Gloria320@gmail.com",
+      email: "mainadavies@gmail.com",
       phone: "0725486687",
       img: "https://randomuser.me/api/portraits/men/47.jpg",
     },
     {
       name: "Allan Cheruiyot",
       role: "Public Relation Officer",
-      email: "Gloria320@gmail.com",
+      email: "allanpr@gmail.com",
       phone: "0725486687",
       img: "https://randomuser.me/api/portraits/men/52.jpg",
     },
   ];
 
+  // 📩 SEND CONTACT MESSAGE — USING CENTRALIZED API
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const res = await fetch("http://localhost:5500/api/contact/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+    e.preventDefault();
+    try {
+      const res = await api.post("/contact/send", formData);
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to send message");
+      alert("Message sent successfully! We'll get back to you.");
+      setFormData({ name: "", email: "", subject: "", message: "" });
 
-    // ✅ Show success popup
-    alert("Message sent successfully! We'll get back to you.");
-    setFormData({ name: "", email: "", subject: "", message: "" });
-  } catch (err) {
-    console.error(err);
-    alert(err.message);
-  }
-};
-
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || err.message || "Failed to send message");
+    }
+  };
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 40 },
@@ -109,6 +103,7 @@ function Contact() {
 
         {/* Contact Form & Info */}
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 px-6 mb-16">
+
           {/* Contact Form */}
           <motion.div
             className="lg:col-span-2"
@@ -132,23 +127,20 @@ function Contact() {
                       type="text"
                       placeholder="Enter your name"
                       value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      className="w-full h-12 border border-gray-400 rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full h-12 border border-gray-400 rounded-lg px-4 focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
+
                   <div>
                     <label className="block font-bold text-gray-800 mb-2">Email Address</label>
                     <input
                       type="email"
                       placeholder="Enter your email"
                       value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      className="w-full h-12 border border-gray-400 rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full h-12 border border-gray-400 rounded-lg px-4 focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
@@ -160,10 +152,8 @@ function Contact() {
                     type="text"
                     placeholder="What is this regarding?"
                     value={formData.subject}
-                    onChange={(e) =>
-                      setFormData({ ...formData, subject: e.target.value })
-                    }
-                    className="w-full h-12 border border-gray-400 rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    className="w-full h-12 border border-gray-400 rounded-lg px-4 focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -173,17 +163,15 @@ function Contact() {
                   <textarea
                     placeholder="Your message here..."
                     value={formData.message}
-                    onChange={(e) =>
-                      setFormData({ ...formData, message: e.target.value })
-                    }
-                    className="w-full min-h-[120px] border border-gray-400 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    className="w-full min-h-[120px] border border-gray-400 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500"
                     required
                   ></textarea>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full h-12 bg-blue-500 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                  className="w-full h-12 bg-blue-500 text-white rounded-lg hover:scale-105 transition-all flex items-center justify-center gap-2"
                 >
                   <Send className="w-4 h-4" />
                   Send Message
@@ -198,7 +186,7 @@ function Contact() {
             initial="hidden"
             whileInView="visible"
           >
-            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-lg hover:shadow-2xl space-y-6 transition-all">
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-lg space-y-6">
               <div className="flex items-start gap-3">
                 <Mail className="w-6 h-6 text-blue-500" />
                 <div>
@@ -234,9 +222,6 @@ function Contact() {
                   <p className="text-gray-700">Mon–Fri: 9:00 AM – 5:00 PM</p>
                   <p className="text-gray-700">Saturday: Closed</p>
                   <p className="text-gray-700">Sunday: 10:00 AM – 2:00 PM</p>
-                  <p className="text-gray-900 font-bold">
-                    Note: Hours may vary during holidays and exam periods.
-                  </p>
                 </div>
               </div>
             </div>
@@ -253,7 +238,7 @@ function Contact() {
             {contacts.map((contact, index) => (
               <motion.div
                 key={index}
-                className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.03]"
+                className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all"
                 variants={fadeInUp}
                 initial="hidden"
                 whileInView="visible"
@@ -289,7 +274,7 @@ function Contact() {
           </div>
         </div>
 
-        {/* Google Map Section */}
+        {/* Google Map */}
         <motion.div
           className="max-w-7xl mx-auto px-6 mb-20"
           variants={fadeInUp}
@@ -306,9 +291,8 @@ function Contact() {
               width="100%"
               height="100%"
               style={{ border: 0 }}
-              allowFullScreen=""
+              allowFullScreen
               loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
               title="UEAB Library Location"
             ></iframe>
           </div>

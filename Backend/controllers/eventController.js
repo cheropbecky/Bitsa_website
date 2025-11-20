@@ -1,12 +1,15 @@
-// controllers/eventController.js
 const Event = require('../models/Event');
 const mongoose = require('mongoose');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
+
+// Allowed event statuses for validation
+const ALLOWED_STATUSES = ['Upcoming', 'Ongoing', 'Past'];
 
 // Helper: determine event status automatically
 const getEventStatus = (eventDate) => {
   const now = new Date();
   const event = new Date(eventDate);
+  // NOTE: Comparing full dates can be tricky; this is a basic time check.
   if (event.toDateString() === now.toDateString()) return 'Ongoing';
   if (event > now) return 'Upcoming';
   return 'Past';
@@ -19,6 +22,7 @@ const getEvents = async (req, res) => {
       .sort({ date: -1 })
       .populate('registeredUsers', 'name email');
 
+    // Attach calculated or admin-set status
     const eventsWithStatus = events.map(event => ({
       ...event.toObject(),
       status: event.status || getEventStatus(event.date)
@@ -57,16 +61,10 @@ const createEvent = async (req, res) => {
 
     let imageData = null;
     if (req.file) {
-      try {
-        imageData = await uploadToCloudinary(req.file.buffer);
-      } catch (err) {
-        console.error('Cloudinary upload error:', err);
-        return res.status(500).json({ message: 'Image upload failed', error: err.message });
-      }
+      imageData = await uploadToCloudinary(req.file.buffer);
     }
 
-    const allowedStatus = ['Upcoming', 'Ongoing', 'Past'];
-    const eventStatus = allowedStatus.includes(status) ? status : getEventStatus(date);
+    const eventStatus = ALLOWED_STATUSES.includes(status) ? status : getEventStatus(date);
 
     const event = new Event({
       title,
@@ -95,24 +93,21 @@ const updateEvent = async (req, res) => {
 
     const { title, description, date, location, status } = req.body;
 
+    // Update basic fields
     if (title) event.title = title;
     if (description) event.description = description;
     if (date) event.date = date;
     if (location) event.location = location;
 
-    const allowedStatus = ['Upcoming', 'Ongoing', 'Past'];
-    if (status && allowedStatus.includes(status)) event.status = status;
-
+    // Update status if provided and valid
+    if (status && ALLOWED_STATUSES.includes(status)) event.status = status;
+    
+    // Handle image update
     if (req.file) {
-      try {
-        if (event.publicId) await deleteFromCloudinary(event.publicId);
-        const imageData = await uploadToCloudinary(req.file.buffer);
-        event.imageUrl = imageData.url;
-        event.publicId = imageData.publicId;
-      } catch (err) {
-        console.error('Cloudinary update error:', err);
-        return res.status(500).json({ message: 'Image update failed', error: err.message });
-      }
+      if (event.publicId) await deleteFromCloudinary(event.publicId);
+      const imageData = await uploadToCloudinary(req.file.buffer);
+      event.imageUrl = imageData.url;
+      event.publicId = imageData.publicId;
     }
 
     await event.save();
@@ -135,12 +130,9 @@ const deleteEvent = async (req, res) => {
     const event = await Event.findById(id);
     if (!event) return res.status(404).json({ message: 'Event not found' });
 
+    // Delete image from Cloudinary if publicId exists
     if (event.publicId) {
-      try {
-        await deleteFromCloudinary(event.publicId);
-      } catch (err) {
-        console.error('Cloudinary deletion error:', err);
-      }
+      await deleteFromCloudinary(event.publicId);
     }
 
     await event.deleteOne();
@@ -158,17 +150,18 @@ const registerEvent = async (req, res) => {
     if (!event) return res.status(404).json({ message: 'Event not found' });
 
     const { userId } = req.body;
-    if (!userId) return res.status(400).json({ message: 'User ID is required' });
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Valid User ID is required' });
+    }
 
-    // Convert to ObjectId
     const userObjectId = mongoose.Types.ObjectId(userId);
 
-    // Safe duplicate check
+    // Check if user is already registered
     const alreadyRegistered = event.registeredUsers.some(
       u => u._id?.toString() === userId || u.toString() === userId
     );
     if (alreadyRegistered) {
-      return res.status(400).json({ message: 'User already registered' });
+      return res.status(400).json({ message: 'User already registered for this event' });
     }
 
     event.registeredUsers.push(userObjectId);

@@ -5,8 +5,6 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
-
-// REGISTER
 router.post('/register', async (req, res) => {
   const { name, email, password, role } = req.body;
   console.log('Login attempt received:', req.body);
@@ -23,8 +21,6 @@ router.post('/register', async (req, res) => {
 
   res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
 });
-
-// LOGIN
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 

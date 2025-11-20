@@ -12,17 +12,34 @@ const userSchema = new mongoose.Schema({
   photo: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
 });
-
-// Hash password before save
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
+  this.password = this.password.trim(); 
+  
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-// Compare password
 userSchema.methods.matchPassword = async function(password) {
-  return await bcrypt.compare(password, this.password);
+  if (!password) return false;
+  
+  
+  const trimmedPassword = password.trim(); 
+
+  try {
+    const normalMatch = await bcrypt.compare(trimmedPassword, this.password);
+    if (normalMatch) {
+      return true;
+    }
+    console.log('Password mismatch for user:', this.email);
+    console.log('Stored password length:', this.password?.length);
+    console.log('Password starts with bcrypt marker:', this.password?.startsWith('$2'));
+    
+    return false;
+  } catch (err) {
+    console.error('Error in matchPassword:', err);
+    return false;
+  }
 };
 
 module.exports = mongoose.model('User', userSchema);

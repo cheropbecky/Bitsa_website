@@ -2,16 +2,13 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const { protect } = require('../middleware/authMiddleware'); // middleware to protect routes
+const { protect } = require('../middleware/authMiddleware'); 
 
-const JWT_SECRET = 'your_jwt_secret'; // ideally move to .env
+const JWT_SECRET = 'your_jwt_secret'; 
 
-// Helper function to generate JWT
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '7d' });
 };
-
-// POST /api/users/register
 router.post('/register', async (req, res) => {
   const { name, email, password, studentId, course, year } = req.body;
 
@@ -28,7 +25,7 @@ router.post('/register', async (req, res) => {
     const newUser = new User({
       name,
       email,
-      password, // hashed in pre-save hook
+      password, 
       studentId: studentId || '',
       course: course || '',
       year: year || '',
@@ -57,7 +54,6 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// POST /api/users/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -89,7 +85,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// GET /api/users/profile
+
 router.get('/profile', protect, async (req, res) => {
   try {
     res.json(req.user);

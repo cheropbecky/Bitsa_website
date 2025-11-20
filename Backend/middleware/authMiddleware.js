@@ -31,7 +31,7 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Admin only middleware - checks if authenticated user is admin
+
 const isAdmin = (req, res, next) => {
   if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({ message: "Admin access required" });
@@ -39,10 +39,10 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-// Verify admin token - standalone admin authentication
+
 const verifyAdmin = async (req, res, next) => {
   try {
-    // Get token from Authorization header
+    
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -50,16 +50,11 @@ const verifyAdmin = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-
-    // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
-    // Check if the token belongs to an admin
     if (decoded.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
     }
-
-    // Attach decoded admin info to request
     req.admin = {
       email: decoded.email,
       role: decoded.role,

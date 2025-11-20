@@ -15,9 +15,6 @@ const getAllBlogs = async (req, res) => {
 // CREATE BLOG
 const createBlog = async (req, res) => {
   try {
-    console.log("req.body:", req.body);
-    console.log("req.file:", req.file);
-
     const { title, author, category, content, imageUrl } = req.body;
 
     if (!title || !author || !content) {
@@ -26,10 +23,8 @@ const createBlog = async (req, res) => {
 
     let imageData = null;
 
-    // Upload to Cloudinary if file exists
     if (req.file) {
       imageData = await uploadToCloudinary(req.file.buffer);
-      console.log("Image uploaded:", imageData);
     } else if (imageUrl) {
       imageData = { url: imageUrl, publicId: null };
     }
@@ -51,13 +46,12 @@ const createBlog = async (req, res) => {
   }
 };
 
-// --- 🔑 NEW: UPDATE BLOG (Full Update, including text and image) 🔑 ---
+// UPDATE BLOG (Handles text and optional image update/removal)
 const updateBlog = async (req, res) => {
     try {
         const { id } = req.params;
         const { title, author, category, content, imageUrl } = req.body;
         
-        // 1. Validate required fields
         if (!title || !author || !content) {
             return res.status(400).json({ message: "Title, author, and content are required" });
         }
@@ -65,40 +59,40 @@ const updateBlog = async (req, res) => {
         const blog = await Blog.findById(id);
         if (!blog) return res.status(404).json({ message: "Blog not found" });
 
-        // 2. Prepare update data
         blog.title = title;
         blog.author = author;
         blog.category = category;
         blog.content = content;
 
         let newImagePublicId = blog.publicId;
+        let newImageUrl = blog.imageUrl;
 
-        // 3. Handle image update logic
+        // Image Update Logic
         if (req.file) {
-            // A. New file uploaded: Delete old image, upload new one
+            // New file uploaded: Delete old image, upload new one
             if (blog.publicId) await deleteFromCloudinary(blog.publicId);
             
             const imageData = await uploadToCloudinary(req.file.buffer);
-            blog.imageUrl = imageData.url;
+            newImageUrl = imageData.url;
             newImagePublicId = imageData.publicId;
 
         } else if (imageUrl) {
-            // B. Image URL provided: Use URL, remove publicId if present (since it's not a Cloudinary image)
+            // Image URL provided: Use URL, remove publicId if present
             if (blog.publicId) await deleteFromCloudinary(blog.publicId);
             
-            blog.imageUrl = imageUrl;
+            newImageUrl = imageUrl;
             newImagePublicId = null;
             
-        } else if (blog.publicId && !blog.imageUrl) {
-            // C. No image provided (and no URL), but an old Cloudinary image exists (user probably cleared the image)
+        } else if (blog.publicId) {
+            // Image cleared: No file or URL provided, but an old Cloudinary image exists
             await deleteFromCloudinary(blog.publicId);
-            blog.imageUrl = null;
+            newImageUrl = null;
             newImagePublicId = null;
         }
 
+        blog.imageUrl = newImageUrl;
         blog.publicId = newImagePublicId;
 
-        // 4. Save and return the updated blog
         await blog.save();
         res.status(200).json(blog);
 
@@ -114,6 +108,7 @@ const deleteBlog = async (req, res) => {
     const blog = await Blog.findById(req.params.id);
     if (!blog) return res.status(404).json({ message: "Blog not found" });
 
+    // Delete image from Cloudinary if it exists
     if (blog.publicId) await deleteFromCloudinary(blog.publicId);
 
     await blog.deleteOne();
@@ -124,7 +119,7 @@ const deleteBlog = async (req, res) => {
   }
 };
 
-// GET ONE BLOG (Placeholder, often useful)
+// GET ONE BLOG
 const getBlog = async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
@@ -136,17 +131,17 @@ const getBlog = async (req, res) => {
   }
 };
 
-
-// NOTE: updateBlogImage is now largely redundant since updateBlog handles image updates, 
-// but it is left for compatibility.
+// UPDATE BLOG IMAGE (Can be removed, as updateBlog now handles it)
 const updateBlogImage = async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
     if (!blog) return res.status(404).json({ message: "Blog not found" });
     if (!req.file) return res.status(400).json({ message: "No image provided" });
 
+    // Delete old image
     if (blog.publicId) await deleteFromCloudinary(blog.publicId);
 
+    // Upload new image
     const imageData = await uploadToCloudinary(req.file.buffer);
 
     blog.imageUrl = imageData.url;

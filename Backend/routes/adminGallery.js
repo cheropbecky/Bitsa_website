@@ -12,8 +12,6 @@ router.post("/gallery", upload.single("image"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "No image uploaded." });
     }
-
-    // Upload buffer to Cloudinary
     const uploadStream = cloudinary.uploader.upload_stream(
       { folder: "bitsa_gallery" },
       async (err, result) => {

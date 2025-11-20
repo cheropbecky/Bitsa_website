@@ -7,14 +7,12 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
-import api from "../api/api"; // Axios instance
-import { useAuth } from "../context/AuthContext"; // ⬅️ NEW: Import useAuth hook
+import api from "../api/api";
+import { useAuth } from "../context/AuthContext";
 
-// The function component no longer accepts the 'onLogin' prop
-function Login() {
+function Login({ onLogin }) {
   const navigate = useNavigate();
-  // 🔑 Extract the 'login' function from the global context
-  const { login } = useAuth(); 
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,21 +25,29 @@ function Login() {
     try {
       const res = await api.post("/users/login", {
         email: email.trim().toLowerCase(),
-        password,
+        password: password.trim(),
       });
 
-      // 🔄 Use the context's login function to update global state and localStorage
-      login(res.data.user, res.data.token);
+      const user = res.data.user;
+      const token = res.data.token;
+
+      if (user.role === "admin") {
+        localStorage.setItem("adminToken", token);
+        localStorage.setItem("isAdmin", "true");
+      }
+
+      if (onLogin) onLogin(user, token);
+      else login(user, token); 
 
       toast.success(res.data.message || "Login successful!");
-      // alert("Login successful!"); // Removed redundant alert for cleaner UX
 
-      // Redirect based on role
-      if (res.data.user.role === "admin") navigate("/admindashboard");
-      else navigate("/userdashboard");
+      if (user.role === "admin") {
+        navigate("/admindashboard");
+      } else {
+        navigate("/userdashboard");
+      }
     } catch (err) {
       console.error("Login error:", err);
-      // Enhanced error message access
       toast.error(err.response?.data?.message || "Invalid email or password");
     } finally {
       setLoading(false);
@@ -51,13 +57,6 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 relative overflow-hidden">
       <div className="absolute inset-0 bg-blue-100" />
-
-      <motion.div
-        className="absolute bottom-0 left-0 w-72 sm:w-96 h-72 sm:h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000"
-        animate={{ y: [0, -15, 0], opacity: [0.2, 0.35, 0.2] }}
-        transition={{ repeat: Infinity, duration: 7, ease: "easeInOut" }}
-      />
-
       <motion.div
         initial={{ opacity: 0, y: 50, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

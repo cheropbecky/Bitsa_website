@@ -119,12 +119,12 @@ function Navbar({ isAuthenticated, onLogout, user }) {
               {isAuthenticated ? (
                 <>
                   <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <div className="w-8 h-8 bg-green-600 rounded-full animate-pulse" />
                     <span className="text-sm text-gray-700">{user?.name || user?.email}</span>
                   </div>
                   <Link to="/userdashboard">
                     <Button variant="outline" className="w-full border-blue-200 text-blue-700 hover:bg-blue-50">
-                      <User className="w-4 h-4 mr-2" />
+                      <User className="w-6 h-6  font-bold mr-2" />
                       Dashboard
                     </Button>
                   </Link>

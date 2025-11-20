@@ -13,6 +13,7 @@ import {
 } from "../components/ui/card";
 import { toast } from "sonner";
 import { ShieldCheck, Mail, Lock, ArrowRight } from "lucide-react";
+import api from "../api/api";
 
 function AdminLogin() {
   const navigate = useNavigate();
@@ -26,28 +27,19 @@ function AdminLogin() {
 
     try {
       // Make API call to backend for authentication
-      const response = await fetch("http://localhost:5500/api/admin/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await api.post("/admin/login", { email, password });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.data.token) {
         // Store the JWT token securely
-        localStorage.setItem("adminToken", data.token);
+        localStorage.setItem("adminToken", response.data.token);
         localStorage.setItem("isAdmin", "true");
         toast.success("Welcome, Admin!");
         navigate("/admindashboard");
-      } else {
-        toast.error(data.message || "Invalid admin credentials");
       }
     } catch (err) {
       console.error("Login error:", err);
-      toast.error("Login failed. Please try again.");
+      const errorMessage = err.response?.data?.message || "Invalid admin credentials";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

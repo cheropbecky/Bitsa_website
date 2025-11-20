@@ -78,7 +78,7 @@ function Homepage({ onNavigate }) {
           </div>
 
           <h1
-            className="text-5xl md:text-7xl mb-6 font-extrabold drop-shadow-lg animate-bounce-slow"
+            className="text-7xl md:text-6xl mb-6 font-extrabold drop-shadow-lg animate-bounce-slow"
             data-aos="zoom-in"
           >
             Welcome to <span className="text-blue-400">BITSA</span>

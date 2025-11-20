@@ -5,24 +5,18 @@ const { verifyAdmin } = require("../middleware/authMiddleware");
 const multer = require("multer");
 const { uploadToCloudinary, deleteFromCloudinary } = require("../config/cloudinary");
 
-// Multer memory storage (buffer upload)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// ==========================
-// CREATE Gallery Item (Admin)
-// ==========================
 router.post("/", verifyAdmin, upload.single("image"), async (req, res) => {
   try {
     let imageUrl = null;
     let publicId = null;
 
-    // 1️⃣ If admin provides image URL
     if (req.body.imageUrl) {
       imageUrl = req.body.imageUrl;
     }
 
-    // 2️⃣ If admin uploads a file
     if (req.file) {
       const result = await uploadToCloudinary(req.file.buffer, "bitsa_gallery");
       imageUrl = result.url;
@@ -47,9 +41,6 @@ router.post("/", verifyAdmin, upload.single("image"), async (req, res) => {
   }
 });
 
-// ==========================
-// GET ALL Gallery Items
-// ==========================
 router.get("/", async (req, res) => {
   try {
     const items = await Gallery.find().sort({ createdAt: -1 });
@@ -60,9 +51,51 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ==========================
-// DELETE Gallery Item (Admin)
-// ==========================
+router.get("/:id", async (req, res) => {
+  try {
+    const item = await Gallery.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Gallery item not found" });
+    res.json(item);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.put("/:id", verifyAdmin, upload.single("image"), async (req, res) => {
+  try {
+    const item = await Gallery.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Gallery item not found" });
+
+    const { title, description, imageUrl } = req.body;
+
+    if (title) item.title = title;
+    if (description !== undefined) item.description = description;
+
+    if (req.file) {
+      if (item.publicId) {
+        await deleteFromCloudinary(item.publicId);
+      }
+      
+      const result = await uploadToCloudinary(req.file.buffer, "bitsa_gallery");
+      item.imageUrl = result.url;
+      item.publicId = result.publicId;
+    } else if (imageUrl) {
+      if (item.publicId) {
+        await deleteFromCloudinary(item.publicId);
+      }
+      item.imageUrl = imageUrl;
+      item.publicId = null;
+    }
+
+    await item.save();
+    res.json({ message: "Gallery item updated", item });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.delete("/:id", verifyAdmin, async (req, res) => {
   try {
     const item = await Gallery.findById(req.params.id);

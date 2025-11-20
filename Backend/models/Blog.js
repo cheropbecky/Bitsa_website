@@ -1,4 +1,3 @@
-// models/Blog.js
 const mongoose = require('mongoose');
 
 const blogSchema = new mongoose.Schema({
@@ -6,8 +5,8 @@ const blogSchema = new mongoose.Schema({
   content: { type: String, required: true },
   author: { type: String },
   category: { type: String },
-  imageUrl: { type: String },   // Cloudinary URL
-  publicId: { type: String },   // Cloudinary public_id for deletion
+  imageUrl: { type: String },  
+  publicId: { type: String },   
   createdAt: { type: Date, default: Date.now }
 });
 

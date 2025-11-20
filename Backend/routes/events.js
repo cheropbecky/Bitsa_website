@@ -1,16 +1,15 @@
-// routes/events.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const mongoose = require('mongoose');
 const Event = require('../models/Event');
+const Registration = require('../models/Registration');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
+const { protect, verifyAdmin } = require('../middleware/authMiddleware');
 
-// Multer memory storage
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// ---------------- GET ALL EVENTS ----------------
 router.get('/', async (req, res) => {
   try {
     const events = await Event.find()
@@ -23,7 +22,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ---------------- GET EVENT BY ID ----------------
 router.get('/:id', async (req, res) => {
   try {
     const event = await Event.findById(req.params.id)
@@ -36,8 +34,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ---------------- CREATE EVENT ----------------
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/', verifyAdmin, upload.single('image'), async (req, res) => {
   try {
     const { title, description, date, location, status } = req.body;
 
@@ -70,8 +67,7 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
 });
 
-// ---------------- UPDATE EVENT ----------------
-router.put('/:id', upload.single('image'), async (req, res) => {
+router.put('/:id', verifyAdmin, upload.single('image'), async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ message: 'Event not found' });
@@ -98,14 +94,13 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   }
 });
 
-// ---------------- DELETE EVENT ----------------
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ message: 'Event not found' });
 
     if (event.publicId) await deleteFromCloudinary(event.publicId);
-    await event.deleteOne(); // ✅ Fixed
+    await event.deleteOne();
 
     res.json({ message: 'Event deleted successfully' });
   } catch (err) {
@@ -114,26 +109,112 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// ---------------- REGISTER FOR EVENT ----------------
-router.post('/:id/register', async (req, res) => {
+router.post('/:id/register', protect, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ message: 'Event not found' });
 
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ message: 'User ID is required' });
+    const userId = req.user._id;
 
-    if (event.registeredUsers.includes(userId)) {
-      return res.status(400).json({ message: 'User already registered for this event' });
+    const existingRegistration = await Registration.findOne({ 
+      event: req.params.id, 
+      user: userId 
+    });
+
+    if (existingRegistration) {
+      return res.status(400).json({ 
+        message: 'You have already registered for this event',
+        status: existingRegistration.status 
+      });
     }
 
-    event.registeredUsers.push(mongoose.Types.ObjectId(userId));
-    await event.save();
+    const registration = new Registration({
+      event: req.params.id,
+      user: userId,
+      status: 'Pending'
+    });
 
-    res.json({ message: 'Successfully registered', event });
+    await registration.save();
+
+    if (!event.registeredUsers.includes(userId)) {
+      event.registeredUsers.push(userId);
+      await event.save();
+    }
+
+    res.json({ 
+      message: 'Registration submitted successfully. Awaiting admin approval.', 
+      registration 
+    });
   } catch (err) {
     console.error('Error registering for event:', err);
     res.status(500).json({ message: 'Server error registering for event', error: err.message });
+  }
+});
+
+router.get('/:id/registrations', verifyAdmin, async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    const registrations = await Registration.find({ event: req.params.id })
+      .populate('user', 'name email studentId course year')
+      .populate('reviewedBy', 'name email')
+      .sort({ registeredAt: -1 });
+
+    res.json({ 
+      event: { id: event._id, title: event.title },
+      count: registrations.length,
+      registrations 
+    });
+  } catch (err) {
+    console.error('Error fetching registrations:', err);
+    res.status(500).json({ message: 'Server error fetching registrations', error: err.message });
+  }
+});
+
+router.put('/registrations/:registrationId/status', verifyAdmin, async (req, res) => {
+  try {
+    const { status, notes } = req.body;
+    
+    if (!['Approved', 'Rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status. Must be Approved or Rejected' });
+    }
+
+    const registration = await Registration.findById(req.params.registrationId)
+      .populate('user', 'name email')
+      .populate('event', 'title');
+
+    if (!registration) {
+      return res.status(404).json({ message: 'Registration not found' });
+    }
+
+    registration.status = status;
+    registration.reviewedAt = new Date();
+    registration.reviewedBy = req.admin.id;
+    if (notes) registration.notes = notes;
+
+    await registration.save();
+
+    res.json({ 
+      message: `Registration ${status.toLowerCase()} successfully`, 
+      registration 
+    });
+  } catch (err) {
+    console.error('Error updating registration status:', err);
+    res.status(500).json({ message: 'Server error updating registration', error: err.message });
+  }
+});
+
+router.get('/user/registrations', protect, async (req, res) => {
+  try {
+    const registrations = await Registration.find({ user: req.user._id })
+      .populate('event', 'title description date location status imageUrl')
+      .sort({ registeredAt: -1 });
+
+    res.json({ registrations });
+  } catch (err) {
+    console.error('Error fetching user registrations:', err);
+    res.status(500).json({ message: 'Server error fetching registrations', error: err.message });
   }
 });
 

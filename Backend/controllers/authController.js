@@ -1,12 +1,8 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
-
-// Generate JWT
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
-
-// REGISTER USER
 exports.registerUser = async (req, res) => {
   try {
     const { name, email, password, role, studentId, course, year } = req.body;
@@ -15,7 +11,9 @@ exports.registerUser = async (req, res) => {
     if (userExists)
       return res.status(400).json({ message: "Email already registered" });
 
-    const user = await User.create({ name, email, password, role, studentId, course, year });
+  
+    const user = new User({ name, email, password, role, studentId, course, year });
+    await user.save(); 
 
     res.status(201).json({
       message: "User registered",
@@ -35,29 +33,23 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-// LOGIN USER
-// LOGIN USER (Corrected Logic)
 exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    // 1. Find the user
     const user = await User.findOne({ email });
     if (!user) {
-      // Return 401 Unauthorized for security (or 400 as you had)
       return res.status(401).json({ message: "Invalid credentials" }); 
     }
 
-    // 2. Check password match
     const isMatch = await user.matchPassword(password);
     
-    // 🚨 NEW CRITICAL STEP: Check if the password matches 🚨
     if (!isMatch) {
-      // Return 401 Unauthorized if the password is wrong
+      
       return res.status(401).json({ message: "Invalid credentials" }); 
     }
 
-    // 3. If match is successful, generate token and respond
+    
     const token = generateToken(user._id);
 
     res.json({
@@ -78,7 +70,8 @@ exports.loginUser = async (req, res) => {
     res.status(500).json({ message: 'Server error during login' });
   }
 };
-// GET LOGGED-IN USER
+
+
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");

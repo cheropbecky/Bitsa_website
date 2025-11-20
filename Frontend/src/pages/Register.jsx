@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import api from '../api/api';
 
-function Register() {
+function Register({ onLogin }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
@@ -24,38 +24,43 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
+    const trimmedPassword = formData.password.trim();
+    const trimmedConfirmPassword = formData.confirmPassword.trim();
+
+    if (trimmedPassword !== trimmedConfirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (trimmedPassword.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;
     }
 
     setLoading(true);
 
+    const cleanedData = {
+      name: formData.name.trim(),
+      email: formData.email.trim().toLowerCase(),
+      password: trimmedPassword,
+      studentId: formData.studentId.trim(),
+      course: formData.course.trim(),
+      year: formData.year,
+    };
+
     try {
-      const response = await api.post('/users/register', {
-        ...formData,
-        email: formData.email.trim().toLowerCase(), // normalize email
-      });
+      const response = await api.post('/users/register', cleanedData);
 
       toast.success('Account created successfully!', { duration: 3000 });
       alert('Registration successful! You can now log in.');
 
       setFormData({
-        name: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        studentId: '',
-        course: '',
-        year: '',
+        name: '', email: '', password: '', confirmPassword: '',
+        studentId: '', course: '', year: '',
       });
-
-      navigate('/login');
+      
+      navigate('/login'); 
+      
     } catch (error) {
       console.error("Registration Error:", error);
       toast.error(error.response?.data?.message || "Something went wrong. Try again.");

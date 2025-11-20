@@ -1,7 +1,6 @@
 const User = require("../models/User");
 
-// Get all users (admin only)
-exports.getUsers = async (req, res) => {
+const getUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });
     res.json({ users });
@@ -10,10 +9,9 @@ exports.getUsers = async (req, res) => {
   }
 };
 
-// Update user role (admin only)
-exports.updateUserRole = async (req, res) => {
+const updateUserRole = async (req, res) => {
   try {
-    const { role } = req.body; // 'admin' or 'student'
+    const { role } = req.body;
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { role },
@@ -28,8 +26,7 @@ exports.updateUserRole = async (req, res) => {
   }
 };
 
-// Delete user (admin only)
-exports.deleteUser = async (req, res) => {
+const deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -37,4 +34,10 @@ exports.deleteUser = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+};
+
+module.exports = {
+    getUsers,
+    updateUserRole,
+    deleteUser
 };

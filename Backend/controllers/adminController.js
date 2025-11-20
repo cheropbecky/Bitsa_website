@@ -1,42 +1,117 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const Admin = require('../models/Admin');
+const User = require('../models/User');
+const Event = require('../models/Event');
+const Blog = require('../models/Blog');
+const Gallery = require('../models/Gallery');
+const Registration = require('../models/Registration');
 
-exports.login = async (req, res) => {
+exports.getDashboardMetrics = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const [totalUsers, totalBlogs, totalGallery, totalEvents] = await Promise.all([
+      User.countDocuments(),
+      Blog.countDocuments(),
+      Gallery.countDocuments(),
+      Event.countDocuments()
+    ]);
 
-    // Find admin by email
-    const admin = await Admin.findOne({ email });
-    
-    if (!admin) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    // Check password
-    const isMatch = await bcrypt.compare(password, admin.password);
-    
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    // Create JWT token
-    const token = jwt.sign(
-      { id: admin._id, email: admin.email, role: 'admin' },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    const pendingRegistrations = await Registration.countDocuments({ status: 'Pending' });
+    const upcomingEvents = await Event.countDocuments({ status: 'Upcoming' });
+    const ongoingEvents = await Event.countDocuments({ status: 'Ongoing' });
+    const pastEvents = await Event.countDocuments({ status: 'Past' });
 
     res.json({
-      token,
-      admin: {
-        id: admin._id,
-        email: admin.email,
-        name: admin.name
+      metrics: {
+        totalUsers,
+        totalBlogs,
+        totalGallery,
+        totalEvents,
+        pendingRegistrations,
+        eventsByStatus: {
+          upcoming: upcomingEvents,
+          ongoing: ongoingEvents,
+          past: pastEvents
+        }
       }
     });
-  } catch (error) {
-    console.error('Admin login error:', error);
-    res.status(500).json({ message: 'Server error' });
+  } catch (err) {
+    console.error('Error fetching dashboard metrics:', err);
+    res.status(500).json({ message: 'Server error fetching metrics', error: err.message });
+  }
+};
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find()
+      .select('-password')
+      .sort({ createdAt: -1 });
+    
+    res.json({ 
+      count: users.length, 
+      users: users.map(user => ({
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        studentId: user.studentId,
+        course: user.course,
+        year: user.year,
+        role: user.role,
+        photo: user.photo,
+        createdAt: user.createdAt
+      }))
+    });
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ message: 'Server error fetching users', error: err.message });
+  }
+};
+
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    if (user._id.toString() === req.admin.id) {
+      return res.status(400).json({ message: 'Cannot delete your own account' });
+    }
+    await Registration.deleteMany({ user: req.params.id });
+    await Event.updateMany(
+      { registeredUsers: req.params.id },
+      { $pull: { registeredUsers: req.params.id } }
+    );
+
+    await User.findByIdAndDelete(req.params.id);
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    res.status(500).json({ message: 'Server error deleting user', error: err.message });
+  }
+};
+
+
+exports.getAllRegistrations = async (req, res) => {
+  try {
+    const { status, eventId } = req.query;
+    
+    const filter = {};
+    if (status) filter.status = status;
+    if (eventId) filter.event = eventId;
+
+    const registrations = await Registration.find(filter)
+      .populate('user', 'name email studentId course year')
+      .populate('event', 'title description date location status')
+      .populate('reviewedBy', 'name email')
+      .sort({ registeredAt: -1 });
+
+    res.json({ 
+      count: registrations.length, 
+      registrations 
+    });
+  } catch (err) {
+    console.error('Error fetching registrations:', err);
+    res.status(500).json({ message: 'Server error fetching registrations', error: err.message });
   }
 };
